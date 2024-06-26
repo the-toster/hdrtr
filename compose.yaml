@@ -1,0 +1,11 @@
+services:
+  php:
+    build:
+      context: ./docker
+      dockerfile: dev.dockerfile
+    user: "1000:1000"
+    volumes:
+      - .:/app
+      - ./docker/.bashrc:/var/www/.bashrc
+    working_dir: /app
+
