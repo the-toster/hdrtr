@@ -1,3 +1,3 @@
-mkdir -p /app/var/
-export HISTFILE=/app/var/.bash_history
+export HISTFILE=/app/var/docker/.bash_history
+mkdir -p /app/var/docker
 touch $HISTFILE

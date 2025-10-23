@@ -1,7 +1,13 @@
-FROM php:8.3.4-fpm
+FROM php:8.3-cli
 
-RUN usermod  -u 1000 www-data
-RUN groupmod -g 1000 www-data
+ARG UID
+ARG GID
+RUN usermod  -u $UID www-data
+RUN groupmod -g $GID www-data
 
-ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-RUN install-php-extensions xdebug opcache pdo_pgsql @composer
+ADD --chmod=0755 \
+    https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions \
+    /usr/local/bin/
+
+RUN install-php-extensions xdebug opcache @composer \
+    bcmath
