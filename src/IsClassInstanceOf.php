@@ -17,9 +17,10 @@ use Typhoon\Type\Variance;
 /**
  * @implements TypeVisitor<bool>
  */
-final readonly class TypeofVisitor implements TypeVisitor
+final readonly class IsClassInstanceOf implements TypeVisitor
 {
-    public function __construct(public mixed $data)
+
+    public function __construct(public NamedClassId $classId)
     {
     }
 
@@ -35,264 +36,197 @@ final readonly class TypeofVisitor implements TypeVisitor
 
     public function null(Type $type): mixed
     {
-        return is_null($this->data);
+        return false;
     }
 
     public function true(Type $type): mixed
     {
-        return $this->data === true;
+        return false;
     }
 
     public function false(Type $type): mixed
     {
-        return $this->data === false;
+        return false;
     }
 
     public function int(Type $type, Type $minType, Type $maxType): mixed
     {
-        $max = $maxType->accept(new IntValueVisitor());
-        $min = $minType->accept(new IntValueVisitor());
-        return is_int($this->data)
-            && $this->data <= $max
-            && $this->data >= $min;
+        return false;
     }
 
     public function intValue(Type $type, int $value): mixed
     {
-        return $this->data === $value;
+        return false;
     }
 
     public function intMask(Type $type, Type $ofType): mixed
     {
-        return $ofType->accept($this);
+        return false;
     }
 
     public function float(Type $type, Type $minType, Type $maxType): mixed
     {
-        $max = $maxType->accept(new FloatValueVisitor());
-        $min = $minType->accept(new FloatValueVisitor());
-        return is_float($this->data)
-            && $this->data <= $max
-            && $this->data >= $min;
+        return false;
     }
 
     public function floatValue(Type $type, float $value): mixed
     {
-        return $this->data === $value;
+        return false;
     }
 
     public function string(Type $type): mixed
     {
-        return is_string($this->data);
+        return false;
     }
 
     public function stringValue(Type $type, string $value): mixed
     {
-        return $this->data === $value;
+        return false;
     }
 
     public function classString(Type $type, Type $classType): mixed
     {
-        return is_string($this->data);
+        return false;
     }
 
     public function numeric(Type $type): mixed
     {
-        return is_numeric($this->data);
+        return false;
     }
 
     public function literal(Type $type, Type $ofType): mixed
     {
-        return $ofType->accept($this);
+        return false;
     }
 
     public function resource(Type $type): mixed
     {
-        return is_resource($this->data);
+        return false;
     }
 
     public function list(Type $type, Type $valueType, array $elements): mixed
     {
-        if (
-            !is_array($this->data)
-            || !array_is_list($this->data)
-        ) {
-            return false;
-        }
+        return false;
+    }
 
-        foreach ($this->data as $item) {
-            if (!$valueType->accept(new self($item))) {
-                return false;
-            }
-        }
+    public function array(Type $type, Type $keyType, Type $valueType, array $elements): mixed
+    {
+        return false;
+    }
 
+    public function key(Type $type, Type $arrayType): mixed
+    {
+        return false;
+    }
 
-        foreach ($elements as $index => $element) {
-            if (!array_key_exists($index, $this->data)) {
-                if ($element->optional) {
+    public function offset(Type $type, Type $arrayType, Type $keyType): mixed
+    {
+        return false;
+    }
+
+    public function iterable(Type $type, Type $keyType, Type $valueType): mixed
+    {
+        return false;
+    }
+
+    public function object(Type $type, array $properties): mixed
+    {
+        $reflection = $this->classId->reflect();
+        foreach ($properties as $name => $typeProperty) {
+            $property = $reflection->hasProperty($name)
+                ? $reflection->getProperty($name)
+                : null;
+
+            if ($property === null) {
+                if($typeProperty->optional) {
                     continue;
                 } else {
                     return false;
                 }
             }
 
-            if (!$element->type->accept(new self($this->data[$index]))) {
-                return false;
-            }
+
         }
-
-        return true;
-    }
-
-    public function array(Type $type, Type $keyType, Type $valueType, array $elements): mixed
-    {
-        if (!is_array($this->data)) {
-            return false;
-        }
-
-        foreach ($this->data as $k => $v) {
-            if (
-                $keyType->accept(new self($k))
-                && $valueType->accept(new self($v))
-            ) {
-                continue;
-            }
-
-            return false;
-        }
-
-        foreach ($elements as $index => $element) {
-            if (!array_key_exists($index, $this->data)) {
-                if ($element->optional) {
-                    continue;
-                }
-                return false;
-            }
-
-            if (!$element->type->accept(new self($this->data[$index]))) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    public function key(Type $type, Type $arrayType): mixed
-    {
-        return is_scalar($this->data);
-    }
-
-    public function offset(Type $type, Type $arrayType, Type $keyType): mixed
-    {
-        return is_scalar($this->data);
-    }
-
-    public function iterable(Type $type, Type $keyType, Type $valueType): mixed
-    {
-        return is_iterable($this->data);
-    }
-
-    public function object(Type $type, array $properties): mixed
-    {
-        return is_object($this->data);
     }
 
     public function namedObject(Type $type, NamedClassId|AnonymousClassId $classId, array $typeArguments): mixed
     {
-        return is_object($this->data) && $this->data::class === $classId->name;
+        // TODO: Implement namedObject() method.
     }
 
     public function self(Type $type, array $typeArguments, NamedClassId|AnonymousClassId|null $resolvedClassId): mixed
     {
-        return false;
+        // TODO: Implement self() method.
     }
 
     public function parent(Type $type, array $typeArguments, ?NamedClassId $resolvedClassId): mixed
     {
-        return false;
+        // TODO: Implement parent() method.
     }
 
     public function static(Type $type, array $typeArguments, NamedClassId|AnonymousClassId|null $resolvedClassId): mixed
     {
-        return false;
+        // TODO: Implement static() method.
     }
 
     public function callable(Type $type, array $parameters, Type $returnType): mixed
     {
-        return is_callable($this->data);
+        // TODO: Implement callable() method.
     }
 
     public function constant(Type $type, ConstantId $constantId): mixed
     {
-        if(!defined($constantId->name)) {
-            return false;
-        }
-
-        return $this->data === constant($constantId->name);
+        // TODO: Implement constant() method.
     }
 
     public function classConstant(Type $type, Type $classType, string $name): mixed
     {
         // TODO: Implement classConstant() method.
-        return false;
     }
 
     public function classConstantMask(Type $type, Type $classType, string $namePrefix): mixed
     {
         // TODO: Implement classConstantMask() method.
-        return false;
     }
 
     public function alias(Type $type, AliasId $aliasId, array $typeArguments): mixed
     {
-        return false;
+        // TODO: Implement alias() method.
     }
 
     public function template(Type $type, TemplateId $templateId): mixed
     {
-        return false;
+        // TODO: Implement template() method.
     }
 
     public function varianceAware(Type $type, Type $ofType, Variance $variance): mixed
     {
-        return false;
+        // TODO: Implement varianceAware() method.
     }
 
     public function union(Type $type, array $ofTypes): mixed
     {
-        foreach ($ofTypes as $ofType) {
-            if ($ofType->accept($this)) {
-                return true;
-            }
-        }
-
-        return false;
+        // TODO: Implement union() method.
     }
 
     public function conditional(Type $type, Type $subjectType, Type $ifType, Type $thenType, Type $elseType): mixed
     {
-        return false;
+        // TODO: Implement conditional() method.
     }
 
     public function argument(Type $type, ParameterId $parameterId): mixed
     {
-        return true;
+        // TODO: Implement argument() method.
     }
 
     public function intersection(Type $type, array $ofTypes): mixed
     {
-        foreach ($ofTypes as $ofType) {
-            if (!$ofType->accept($this)) {
-                return false;
-            }
-        }
-
-        return true;
+        // TODO: Implement intersection() method.
     }
 
     public function not(Type $type, Type $ofType): mixed
     {
-        return !$ofType->accept($this);
+        // TODO: Implement not() method.
     }
 
     public function mixed(Type $type): mixed

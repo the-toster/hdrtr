@@ -25,7 +25,7 @@ final readonly class HydratingVisitor implements TypeVisitor
 
     private function ifTypeOf(Type $type): mixed
     {
-        return $type->accept(new TypeofVisitor($this->data))
+        return $type->accept(new IsValueTypeOf($this->data))
             ? $this->data
             : Error::create();
     }
