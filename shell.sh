@@ -1,1 +1,1 @@
-docker compose run --rm php bash
+cd docker && docker compose run --rm php bash

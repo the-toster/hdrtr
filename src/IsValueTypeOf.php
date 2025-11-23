@@ -4,317 +4,301 @@ declare(strict_types=1);
 
 namespace Hdrtr;
 
-use Typhoon\DeclarationId\AliasId;
-use Typhoon\DeclarationId\AnonymousClassId;
-use Typhoon\DeclarationId\ConstantId;
-use Typhoon\DeclarationId\NamedClassId;
-use Typhoon\DeclarationId\ParameterId;
-use Typhoon\DeclarationId\TemplateId;
-use Typhoon\Type\Type;
-use Typhoon\Type\TypeVisitor;
-use Typhoon\Type\Variance;
+use Typhoon\Type;
+use Typhoon\Type\ArrayBareT;
+use Typhoon\Type\ArrayKeyT;
+use Typhoon\Type\ArrayT;
+use Typhoon\Type\BitmaskT;
+use Typhoon\Type\BoolT;
+use Typhoon\Type\CallableBareT;
+use Typhoon\Type\CallableT;
+use Typhoon\Type\ClassConstantMaskT;
+use Typhoon\Type\ClassConstantT;
+use Typhoon\Type\ClassT;
+use Typhoon\Type\ClosureT;
+use Typhoon\Type\ConstantMaskT;
+use Typhoon\Type\ConstantT;
+use Typhoon\Type\FalseT;
+use Typhoon\Type\FloatRangeT;
+use Typhoon\Type\FloatT;
+use Typhoon\Type\FloatValueT;
+use Typhoon\Type\IntersectionT;
+use Typhoon\Type\IntRangeT;
+use Typhoon\Type\IntT;
+use Typhoon\Type\IntValueT;
+use Typhoon\Type\IterableBareT;
+use Typhoon\Type\IterableT;
+use Typhoon\Type\ListT;
+use Typhoon\Type\LowercaseStringT;
+use Typhoon\Type\MixedT;
+use Typhoon\Type\NamedObjectT;
+use Typhoon\Type\NegativeIntT;
+use Typhoon\Type\NeverT;
+use Typhoon\Type\NonEmptyStringT;
+use Typhoon\Type\NonNegativeIntT;
+use Typhoon\Type\NonPositiveIntT;
+use Typhoon\Type\NonZeroIntT;
+use Typhoon\Type\NullT;
+use Typhoon\Type\NumericStringT;
+use Typhoon\Type\NumericT;
+use Typhoon\Type\ObjectShapeT;
+use Typhoon\Type\ObjectT;
+use Typhoon\Type\PositiveIntT;
+use Typhoon\Type\ResourceT;
+use Typhoon\Type\ScalarT;
+use Typhoon\Type\StringT;
+use Typhoon\Type\StringValueT;
+use Typhoon\Type\TrueT;
+use Typhoon\Type\TruthyStringT;
+use Typhoon\Type\UnionT;
+use Typhoon\Type\Visitor;
+use Typhoon\Type\VoidT;
 
 /**
- * @implements TypeVisitor<bool>
+ * @implements Visitor<bool>
  */
-final readonly class IsValueTypeOf implements TypeVisitor
+final readonly class IsValueTypeOf implements Visitor
 {
     public function __construct(public mixed $data)
     {
     }
 
-    public function never(Type $type): mixed
+    public function neverT(NeverT $type): mixed
     {
         return false;
     }
 
-    public function void(Type $type): mixed
+    public function voidT(VoidT $type): mixed
     {
         return false;
     }
 
-    public function null(Type $type): mixed
+    public function nullT(NullT $type): mixed
     {
-        return is_null($this->data);
+        return is_null($type);
     }
 
-    public function true(Type $type): mixed
-    {
-        return $this->data === true;
-    }
-
-    public function false(Type $type): mixed
+    public function falseT(FalseT $type): mixed
     {
         return $this->data === false;
     }
 
-    public function int(Type $type, Type $minType, Type $maxType): mixed
+    public function trueT(TrueT $type): mixed
     {
-        if (!is_int($this->data)) {
-            return false;
-        }
-        $max = $maxType->accept(new FindScalarValue());
-        $min = $minType->accept(new FindScalarValue());
-        return is_int($min)
-            && is_int($max)
-            && $this->data <= $max
-            && $this->data >= $min;
+        return $this->data === true;
     }
 
-    public function intValue(Type $type, int $value): mixed
+    public function boolT(BoolT $type): mixed
     {
-        return $this->data === $value;
+        return is_bool($this->data);
     }
 
-    public function intMask(Type $type, Type $ofType): mixed
+    public function intT(IntT $type): mixed
     {
-        return $ofType->accept($this);
+        return is_int($this->data);
     }
 
-    public function float(Type $type, Type $minType, Type $maxType): mixed
+    public function intValueT(IntValueT $type): mixed
     {
-        if (!is_float($this->data)) {
-            return false;
-        }
-
-        $max = $maxType->accept(new FindScalarValue());
-        $min = $minType->accept(new FindScalarValue());
-
-        return is_float($max)
-            && is_float($min)
-            && $this->data <= $max
-            && $this->data >= $min;
+        return $this->data === $type->value;
     }
 
-    public function floatValue(Type $type, float $value): mixed
+    public function intRangeT(IntRangeT $type): mixed
     {
-        return $this->data === $value;
+        return is_int($this->data)
+            && ($type->max === null || $this->data <= $type->max)
+            && ($type->min === null || $this->data >= $type->min);
     }
 
-    public function string(Type $type): mixed
+    public function negativeIntT(NegativeIntT $type): mixed
+    {
+        return is_int($this->data) && $this->data < 0;
+    }
+
+    public function nonPositiveIntT(NonPositiveIntT $type): mixed
+    {
+        return is_int($this->data) && $this->data <= 0;
+    }
+
+    public function nonZeroIntT(NonZeroIntT $type): mixed
+    {
+        return is_int($this->data) && $this->data !== 0;
+    }
+
+    public function nonNegativeIntT(NonNegativeIntT $type): mixed
+    {
+        return is_int($this->data) && $this->data >= 0;
+    }
+
+    public function positiveIntT(PositiveIntT $type): mixed
+    {
+        return is_int($this->data) && $this->data > 0;
+    }
+
+    public function bitmaskT(BitmaskT $type): mixed
+    {
+        // TODO: Implement bitmaskT() method.
+    }
+
+    public function floatT(FloatT $type): mixed
+    {
+        return is_float($this->data);
+    }
+
+    public function floatValueT(FloatValueT $type): mixed
+    {
+        return $this->data === $type->value;
+    }
+
+    public function floatRangeT(FloatRangeT $type): mixed
+    {
+        return is_float($this->data)
+            && ($type->max === null || $this->data <= $type->max)
+            && ($type->min === null || $this->data >= $type->min);
+    }
+
+    public function stringT(StringT $type): mixed
     {
         return is_string($this->data);
     }
 
-    public function stringValue(Type $type, string $value): mixed
+    public function nonEmptyStringT(NonEmptyStringT $type): mixed
     {
-        return $this->data === $value;
+        return is_string($this->data) && $this->data !== '';
     }
 
-    public function classString(Type $type, Type $classType): mixed
+    public function truthyStringT(TruthyStringT $type): mixed
     {
-        if(!is_string($this->data)) {
-            return false;
-        }
-
-        $name = $classType->accept(new FindClassName());
-
-        if(!is_string($this->data)) {
-            return false;
-        }
+        return is_string($this->data) && (bool)$this->data;
     }
 
-    public function numeric(Type $type): mixed
+    public function numericStringT(NumericStringT $type): mixed
     {
-        return is_numeric($this->data);
+        // TODO: Implement numericStringT() method.
     }
 
-    public function literal(Type $type, Type $ofType): mixed
+    public function lowercaseStringT(LowercaseStringT $type): mixed
     {
-        return $ofType->accept($this);
+        // TODO: Implement lowercaseStringT() method.
     }
 
-    public function resource(Type $type): mixed
+    public function stringValueT(StringValueT $type): mixed
     {
-        return is_resource($this->data);
+        // TODO: Implement stringValueT() method.
     }
 
-    public function list(Type $type, Type $valueType, array $elements): mixed
+    public function classT(ClassT $type): mixed
     {
-        if (
-            !is_array($this->data)
-            || !array_is_list($this->data)
-        ) {
-            return false;
-        }
-
-        foreach ($this->data as $item) {
-            if (!$valueType->accept(new self($item))) {
-                return false;
-            }
-        }
-
-
-        foreach ($elements as $index => $element) {
-            if (!array_key_exists($index, $this->data)) {
-                if ($element->optional) {
-                    continue;
-                } else {
-                    return false;
-                }
-            }
-
-            if (!$element->type->accept(new self($this->data[$index]))) {
-                return false;
-            }
-        }
-
-        return true;
+        // TODO: Implement classT() method.
     }
 
-    public function array(Type $type, Type $keyType, Type $valueType, array $elements): mixed
+    public function listT(ListT $type): mixed
     {
-        if (!is_array($this->data)) {
-            return false;
-        }
-
-        foreach ($this->data as $k => $v) {
-            if (
-                $keyType->accept(new self($k))
-                && $valueType->accept(new self($v))
-            ) {
-                continue;
-            }
-
-            return false;
-        }
-
-        foreach ($elements as $index => $element) {
-            if (!array_key_exists($index, $this->data)) {
-                if ($element->optional) {
-                    continue;
-                }
-                return false;
-            }
-
-            if (!$element->type->accept(new self($this->data[$index]))) {
-                return false;
-            }
-        }
-
-        return true;
+        // TODO: Implement listT() method.
     }
 
-    public function key(Type $type, Type $arrayType): mixed
+    public function arrayBareT(ArrayBareT $type): mixed
     {
-        return is_scalar($this->data);
+        // TODO: Implement arrayBareT() method.
     }
 
-    public function offset(Type $type, Type $arrayType, Type $keyType): mixed
+    public function arrayT(ArrayT $type): mixed
     {
-        return is_scalar($this->data);
+        // TODO: Implement arrayT() method.
     }
 
-    public function iterable(Type $type, Type $keyType, Type $valueType): mixed
+    public function objectT(ObjectT $type): mixed
     {
-        return is_iterable($this->data);
+        // TODO: Implement objectT() method.
     }
 
-    public function object(Type $type, array $properties): mixed
+    public function namedObjectT(NamedObjectT $type): mixed
     {
-        return is_object($this->data);
+        // TODO: Implement namedObjectT() method.
     }
 
-    public function namedObject(Type $type, NamedClassId|AnonymousClassId $classId, array $typeArguments): mixed
+    public function objectShapeT(ObjectShapeT $type): mixed
     {
-        return is_object($this->data) && $this->data::class === $classId->name;
+        // TODO: Implement objectShapeT() method.
     }
 
-    public function self(Type $type, array $typeArguments, NamedClassId|AnonymousClassId|null $resolvedClassId): mixed
+    public function iterableBareT(IterableBareT $type): mixed
     {
-        return false;
+        // TODO: Implement iterableBareT() method.
     }
 
-    public function parent(Type $type, array $typeArguments, ?NamedClassId $resolvedClassId): mixed
+    public function iterableT(IterableT $type): mixed
     {
-        return false;
+        // TODO: Implement iterableT() method.
     }
 
-    public function static(Type $type, array $typeArguments, NamedClassId|AnonymousClassId|null $resolvedClassId): mixed
+    public function callableBareT(CallableBareT $type): mixed
     {
-        return false;
+        // TODO: Implement callableBareT() method.
     }
 
-    public function callable(Type $type, array $parameters, Type $returnType): mixed
+    public function callableT(CallableT $type): mixed
     {
-        return is_callable($this->data);
+        // TODO: Implement callableT() method.
     }
 
-    public function constant(Type $type, ConstantId $constantId): mixed
+    public function closureT(ClosureT $type): mixed
     {
-        if (!defined($constantId->name)) {
-            return false;
-        }
-
-        return $this->data === constant($constantId->name);
+        // TODO: Implement closureT() method.
     }
 
-    public function classConstant(Type $type, Type $classType, string $name): mixed
+    public function resourceT(ResourceT $type): mixed
     {
-        // TODO: Implement classConstant() method.
-        return false;
+        // TODO: Implement resourceT() method.
     }
 
-    public function classConstantMask(Type $type, Type $classType, string $namePrefix): mixed
+    public function constantT(ConstantT $type): mixed
     {
-        // TODO: Implement classConstantMask() method.
-        return false;
+        // TODO: Implement constantT() method.
     }
 
-    public function alias(Type $type, AliasId $aliasId, array $typeArguments): mixed
+    public function constantMaskT(ConstantMaskT $type): mixed
     {
-        return false;
+        // TODO: Implement constantMaskT() method.
     }
 
-    public function template(Type $type, TemplateId $templateId): mixed
+    public function classConstantT(ClassConstantT $type): mixed
     {
-        return false;
+        // TODO: Implement classConstantT() method.
     }
 
-    public function varianceAware(Type $type, Type $ofType, Variance $variance): mixed
+    public function classConstantMaskT(ClassConstantMaskT $type): mixed
     {
-        return false;
+        // TODO: Implement classConstantMaskT() method.
     }
 
-    public function union(Type $type, array $ofTypes): mixed
+    public function intersectionT(IntersectionT $type): mixed
     {
-        foreach ($ofTypes as $ofType) {
-            if ($ofType->accept($this)) {
-                return true;
-            }
-        }
-
-        return false;
+        // TODO: Implement intersectionT() method.
     }
 
-    public function conditional(Type $type, Type $subjectType, Type $ifType, Type $thenType, Type $elseType): mixed
+    public function unionT(UnionT $type): mixed
     {
-        return false;
+        // TODO: Implement unionT() method.
     }
 
-    public function argument(Type $type, ParameterId $parameterId): mixed
+    public function arrayKeyT(ArrayKeyT $type): mixed
     {
-        return true;
+        // TODO: Implement arrayKeyT() method.
     }
 
-    public function intersection(Type $type, array $ofTypes): mixed
+    public function numericT(NumericT $type): mixed
     {
-        foreach ($ofTypes as $ofType) {
-            if (!$ofType->accept($this)) {
-                return false;
-            }
-        }
-
-        return true;
+        // TODO: Implement numericT() method.
     }
 
-    public function not(Type $type, Type $ofType): mixed
+    public function scalarT(ScalarT $type): mixed
     {
-        return !$ofType->accept($this);
+        // TODO: Implement scalarT() method.
     }
 
-    public function mixed(Type $type): mixed
+    public function mixedT(MixedT $type): mixed
     {
-        return true;
+        // TODO: Implement mixedT() method.
     }
 }

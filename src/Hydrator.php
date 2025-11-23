@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Hdrtr;
 
-use Typhoon\Type\Type;
+use Typhoon\Type;
 
 final readonly class Hydrator
 {
