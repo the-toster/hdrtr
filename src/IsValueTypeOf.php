@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hdrtr;
 
+use ReflectionClass;
 use Typhoon\Type;
 use Typhoon\Type\ArrayBareT;
 use Typhoon\Type\ArrayKeyT;
@@ -174,17 +175,18 @@ final readonly class IsValueTypeOf implements Visitor
 
     public function numericStringT(NumericStringT $type): mixed
     {
-        // TODO: Implement numericStringT() method.
+        return is_string($this->data) && is_numeric($this->data);
     }
 
     public function lowercaseStringT(LowercaseStringT $type): mixed
     {
-        // TODO: Implement lowercaseStringT() method.
+        return is_string($this->data)
+            && (mb_strtolower($this->data) === $this->data);
     }
 
     public function stringValueT(StringValueT $type): mixed
     {
-        // TODO: Implement stringValueT() method.
+        return $this->data === $type->value;
     }
 
     public function classT(ClassT $type): mixed
@@ -249,56 +251,95 @@ final readonly class IsValueTypeOf implements Visitor
 
     public function resourceT(ResourceT $type): mixed
     {
-        // TODO: Implement resourceT() method.
+        return is_resource($this->data);
     }
 
     public function constantT(ConstantT $type): mixed
     {
-        // TODO: Implement constantT() method.
+        return
+            defined($type->name)
+            && $this->data === constant($type->name);
     }
 
     public function constantMaskT(ConstantMaskT $type): mixed
     {
-        // TODO: Implement constantMaskT() method.
+        foreach (get_defined_constants() as $name => $value) {
+            if ($this->data === $value
+                && $type->mask->test($name)
+            ) {
+                return true;
+            }
+        };
+
+        return false;
     }
 
     public function classConstantT(ClassConstantT $type): mixed
     {
-        // TODO: Implement classConstantT() method.
+        return
+            class_exists($type->class)
+            && defined($type->class.'::'.$type->name)
+            && constant($type->class.'::'.$type->name) === $this->data;
     }
 
     public function classConstantMaskT(ClassConstantMaskT $type): mixed
     {
-        // TODO: Implement classConstantMaskT() method.
+        if (!class_exists($type->class)) {
+            return false;
+        }
+
+        $reflection = new ReflectionClass($type->class);
+
+        foreach ($reflection->getConstants() as $name => $value) {
+            if ($this->data === $value && $type->mask->test($name)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function intersectionT(IntersectionT $type): mixed
     {
-        // TODO: Implement intersectionT() method.
+        foreach ($type->types as $part) {
+            if (!$part->accept($this)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function unionT(UnionT $type): mixed
     {
-        // TODO: Implement unionT() method.
+        foreach ($type->types as $part) {
+            if ($part->accept($this)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function arrayKeyT(ArrayKeyT $type): mixed
     {
-        // TODO: Implement arrayKeyT() method.
+        return
+            (is_string($this->data) && preg_match('~^\d+$~', $this->data) === 0)
+            || is_int($this->data);
     }
 
     public function numericT(NumericT $type): mixed
     {
-        // TODO: Implement numericT() method.
+        return is_numeric($this->data);
     }
 
     public function scalarT(ScalarT $type): mixed
     {
-        // TODO: Implement scalarT() method.
+        return is_scalar($this->data);
     }
 
     public function mixedT(MixedT $type): mixed
     {
-        // TODO: Implement mixedT() method.
+        return true;
     }
 }
