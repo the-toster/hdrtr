@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hdrtr;
 
 use ReflectionClass;
+use ReflectionFunction;
 use Typhoon\Type;
 use Typhoon\Type\ArrayBareT;
 use Typhoon\Type\ArrayKeyT;
@@ -54,6 +55,11 @@ use Typhoon\Type\TruthyStringT;
 use Typhoon\Type\UnionT;
 use Typhoon\Type\Visitor;
 use Typhoon\Type\VoidT;
+
+use function Amp\Socket\SocketAddress\fromString;
+use function Typhoon\Type\callableT;
+
+use const Typhoon\Type\mixedT;
 
 /**
  * @implements Visitor<bool>
@@ -191,62 +197,118 @@ final readonly class IsValueTypeOf implements Visitor
 
     public function classT(ClassT $type): mixed
     {
-        // TODO: Implement classT() method.
+        return is_string($this->data)
+            && $type->accept(new FindClassName()) === $this->data;
     }
 
     public function listT(ListT $type): mixed
     {
-        // TODO: Implement listT() method.
+        return is_array($this->data) && array_is_list($this->data);
     }
 
     public function arrayBareT(ArrayBareT $type): mixed
     {
-        // TODO: Implement arrayBareT() method.
+        return is_array($this->data);
     }
 
     public function arrayT(ArrayT $type): mixed
     {
-        // TODO: Implement arrayT() method.
+        if (!is_array($this->data)) {
+            return false;
+        }
+
+        foreach ($this->data as $key => $value) {
+            if (
+                !$type->keyType->accept(new self($key))
+                ||
+                !$type->valueType->accept(new self($value))
+            ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function objectT(ObjectT $type): mixed
     {
-        // TODO: Implement objectT() method.
+        return is_object($this->data);
     }
 
     public function namedObjectT(NamedObjectT $type): mixed
     {
-        // TODO: Implement namedObjectT() method.
+        return is_object($this->data)
+            && $this->data::class === $type->class;
     }
 
     public function objectShapeT(ObjectShapeT $type): mixed
     {
-        // TODO: Implement objectShapeT() method.
+        if (!is_object($this->data)) {
+            return false;
+        }
+
+        foreach ($type->properties as $property) {
+            if (!property_exists($this->data, $property->name)) {
+                return false;
+            }
+
+            if (!$property->type->accept(new self($this->data->{$property->name}))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function iterableBareT(IterableBareT $type): mixed
     {
-        // TODO: Implement iterableBareT() method.
+        return is_iterable($this->data);
     }
 
     public function iterableT(IterableT $type): mixed
     {
-        // TODO: Implement iterableT() method.
+        if (!is_iterable($this->data)) {
+            return false;
+        }
+
+        foreach ($this->data as $key => $value) {
+            if (!$type->keyType->accept(new self($key))) {
+                return false;
+            }
+
+            if (!$type->keyType->accept(new self($value))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function callableBareT(CallableBareT $type): mixed
     {
-        // TODO: Implement callableBareT() method.
+        return is_callable($this->data);
     }
 
     public function callableT(CallableT $type): mixed
     {
-        // TODO: Implement callableT() method.
+        if (!is_callable($this->data)) {
+            return false;
+        }
+
+        $closure = $this->data instanceof \Closure
+            ? $this->data
+            : ($this->data)(...);
+
+        $ref = new ReflectionFunction($closure);
+
+        $parameters = $ref->getParameters();
+        $returnType = $ref->getReturnType();
+
     }
 
     public function closureT(ClosureT $type): mixed
     {
-        // TODO: Implement closureT() method.
+        return $this->callableT(callableT($type->parameters, $type->returnType));
     }
 
     public function resourceT(ResourceT $type): mixed

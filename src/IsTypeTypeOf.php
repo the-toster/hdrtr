@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hdrtr;
 
+use Typhoon\Type;
 use Typhoon\Type\ArrayBareT;
 use Typhoon\Type\ArrayKeyT;
 use Typhoon\Type\ArrayT;
@@ -54,128 +55,133 @@ use Typhoon\Type\Visitor;
 use Typhoon\Type\VoidT;
 
 /**
- * @implements Visitor<?class-string>
+ * @implements Visitor<bool>
  */
-final class FindClassName implements Visitor
+final readonly class IsTypeTypeOf implements Visitor
 {
+
+    public function __construct(Type $type)
+    {
+    }
+
     public function neverT(NeverT $type): mixed
     {
-        return null;
+        // TODO: Implement neverT() method.
     }
 
     public function voidT(VoidT $type): mixed
     {
-        return null;
+        // TODO: Implement voidT() method.
     }
 
     public function nullT(NullT $type): mixed
     {
-        return null;
+        // TODO: Implement nullT() method.
     }
 
     public function falseT(FalseT $type): mixed
     {
-        return null;
+        // TODO: Implement falseT() method.
     }
 
     public function trueT(TrueT $type): mixed
     {
-        return null;
+        // TODO: Implement trueT() method.
     }
 
     public function boolT(BoolT $type): mixed
     {
-        return null;
+        // TODO: Implement boolT() method.
     }
 
     public function intT(IntT $type): mixed
     {
-        return null;
+        // TODO: Implement intT() method.
     }
 
     public function intValueT(IntValueT $type): mixed
     {
-        return null;
+        // TODO: Implement intValueT() method.
     }
 
     public function intRangeT(IntRangeT $type): mixed
     {
-        return null;
+        // TODO: Implement intRangeT() method.
     }
 
     public function negativeIntT(NegativeIntT $type): mixed
     {
-        return null;
+        // TODO: Implement negativeIntT() method.
     }
 
     public function nonPositiveIntT(NonPositiveIntT $type): mixed
     {
-        return null;
+        // TODO: Implement nonPositiveIntT() method.
     }
 
     public function nonZeroIntT(NonZeroIntT $type): mixed
     {
-        return null;
+        // TODO: Implement nonZeroIntT() method.
     }
 
     public function nonNegativeIntT(NonNegativeIntT $type): mixed
     {
-        return null;
+        // TODO: Implement nonNegativeIntT() method.
     }
 
     public function positiveIntT(PositiveIntT $type): mixed
     {
-        return null;
+        // TODO: Implement positiveIntT() method.
     }
 
     public function bitmaskT(BitmaskT $type): mixed
     {
-        return null;
+        // TODO: Implement bitmaskT() method.
     }
 
     public function floatT(FloatT $type): mixed
     {
-        return null;
+        // TODO: Implement floatT() method.
     }
 
     public function floatValueT(FloatValueT $type): mixed
     {
-        return null;
+        // TODO: Implement floatValueT() method.
     }
 
     public function floatRangeT(FloatRangeT $type): mixed
     {
-        return null;
+        // TODO: Implement floatRangeT() method.
     }
 
     public function stringT(StringT $type): mixed
     {
-        return null;
+        // TODO: Implement stringT() method.
     }
 
     public function nonEmptyStringT(NonEmptyStringT $type): mixed
     {
-        return null;
+        // TODO: Implement nonEmptyStringT() method.
     }
 
     public function truthyStringT(TruthyStringT $type): mixed
     {
-        return null;
+        // TODO: Implement truthyStringT() method.
     }
 
     public function numericStringT(NumericStringT $type): mixed
     {
-        return null;
+        // TODO: Implement numericStringT() method.
     }
 
     public function lowercaseStringT(LowercaseStringT $type): mixed
     {
-        return null;
+        // TODO: Implement lowercaseStringT() method.
     }
 
     public function stringValueT(StringValueT $type): mixed
     {
-        return null;
+        // TODO: Implement stringValueT() method.
     }
 
     public function classT(ClassT $type): mixed
@@ -185,111 +191,111 @@ final class FindClassName implements Visitor
 
     public function listT(ListT $type): mixed
     {
-        return null;
+        // TODO: Implement listT() method.
     }
 
     public function arrayBareT(ArrayBareT $type): mixed
     {
-        return null;
+        // TODO: Implement arrayBareT() method.
     }
 
     public function arrayT(ArrayT $type): mixed
     {
-        return null;
+        // TODO: Implement arrayT() method.
     }
 
     public function objectT(ObjectT $type): mixed
     {
-        return null;
+        // TODO: Implement objectT() method.
     }
 
     public function namedObjectT(NamedObjectT $type): mixed
     {
-        return $type->class;
+        // TODO: Implement namedObjectT() method.
     }
 
     public function objectShapeT(ObjectShapeT $type): mixed
     {
-        return null;
+        // TODO: Implement objectShapeT() method.
     }
 
     public function iterableBareT(IterableBareT $type): mixed
     {
-        return null;
+        // TODO: Implement iterableBareT() method.
     }
 
     public function iterableT(IterableT $type): mixed
     {
-        return null;
+        // TODO: Implement iterableT() method.
     }
 
     public function callableBareT(CallableBareT $type): mixed
     {
-        return null;
+        // TODO: Implement callableBareT() method.
     }
 
     public function callableT(CallableT $type): mixed
     {
-        return null;
+        // TODO: Implement callableT() method.
     }
 
     public function closureT(ClosureT $type): mixed
     {
-        return null;
+        // TODO: Implement closureT() method.
     }
 
     public function resourceT(ResourceT $type): mixed
     {
-        return null;
+        // TODO: Implement resourceT() method.
     }
 
     public function constantT(ConstantT $type): mixed
     {
-        return null;
+        // TODO: Implement constantT() method.
     }
 
     public function constantMaskT(ConstantMaskT $type): mixed
     {
-        return null;
+        // TODO: Implement constantMaskT() method.
     }
 
     public function classConstantT(ClassConstantT $type): mixed
     {
-        return null;
+        // TODO: Implement classConstantT() method.
     }
 
     public function classConstantMaskT(ClassConstantMaskT $type): mixed
     {
-        return null;
+        // TODO: Implement classConstantMaskT() method.
     }
 
     public function intersectionT(IntersectionT $type): mixed
     {
-        return null;
+        // TODO: Implement intersectionT() method.
     }
 
     public function unionT(UnionT $type): mixed
     {
-        return null;
+        // TODO: Implement unionT() method.
     }
 
     public function arrayKeyT(ArrayKeyT $type): mixed
     {
-        return null;
+        // TODO: Implement arrayKeyT() method.
     }
 
     public function numericT(NumericT $type): mixed
     {
-        return null;
+        // TODO: Implement numericT() method.
     }
 
     public function scalarT(ScalarT $type): mixed
     {
-        return null;
+        // TODO: Implement scalarT() method.
     }
 
     public function mixedT(MixedT $type): mixed
     {
-        return null;
+        // TODO: Implement mixedT() method.
     }
 }
