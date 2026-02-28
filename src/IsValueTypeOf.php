@@ -144,7 +144,7 @@ final readonly class IsValueTypeOf implements Visitor
 
     public function bitmaskT(BitmaskT $type): mixed
     {
-        // TODO: Implement bitmaskT() method.
+        $this->unimplemented();
     }
 
     public function floatT(FloatT $type): mixed
@@ -176,7 +176,7 @@ final readonly class IsValueTypeOf implements Visitor
 
     public function truthyStringT(TruthyStringT $type): mixed
     {
-        return is_string($this->data) && (bool)$this->data;
+        return is_string($this->data) && (bool) $this->data;
     }
 
     public function numericStringT(NumericStringT $type): mixed
@@ -197,8 +197,8 @@ final readonly class IsValueTypeOf implements Visitor
 
     public function classT(ClassT $type): mixed
     {
-        return is_string($this->data)
-            && $type->accept(new FindClassName()) === $this->data;
+        return is_string($this->data) &&
+            preg_match('~^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*~', $this->data) === 1;
     }
 
     public function listT(ListT $type): mixed
@@ -227,6 +227,22 @@ final readonly class IsValueTypeOf implements Visitor
             }
         }
 
+        foreach ($type->elements as $element) {
+            $hasElement = array_key_exists($element->key, $this->data);
+            if(!$hasElement && $element->isOptional) {
+                return false;
+            }
+
+            if(!$hasElement) {
+                continue;
+            }
+
+            $dataElement = $this->data[$element->key];
+            if(!$element->type->accept(new self($dataElement))) {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -238,7 +254,7 @@ final readonly class IsValueTypeOf implements Visitor
     public function namedObjectT(NamedObjectT $type): mixed
     {
         return is_object($this->data)
-            && $this->data::class === $type->class;
+            && is_a($this->data, $type->class);
     }
 
     public function objectShapeT(ObjectShapeT $type): mixed
@@ -248,8 +264,13 @@ final readonly class IsValueTypeOf implements Visitor
         }
 
         foreach ($type->properties as $property) {
-            if (!property_exists($this->data, $property->name)) {
+            $hasProperty = property_exists($this->data, $property->name);
+            if (!$hasProperty && $property->isOptional) {
                 return false;
+            }
+
+            if(!$hasProperty) {
+                continue;
             }
 
             if (!$property->type->accept(new self($this->data->{$property->name}))) {
@@ -340,8 +361,8 @@ final readonly class IsValueTypeOf implements Visitor
     {
         return
             class_exists($type->class)
-            && defined($type->class.'::'.$type->name)
-            && constant($type->class.'::'.$type->name) === $this->data;
+            && defined($type->class . '::' . $type->name)
+            && constant($type->class . '::' . $type->name) === $this->data;
     }
 
     public function classConstantMaskT(ClassConstantMaskT $type): mixed
@@ -403,5 +424,10 @@ final readonly class IsValueTypeOf implements Visitor
     public function mixedT(MixedT $type): mixed
     {
         return true;
+    }
+
+    private function unimplemented(): never
+    {
+        throw new Unimplemented();
     }
 }
