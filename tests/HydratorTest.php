@@ -8,7 +8,7 @@ use Hdrtr\Hydrator;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-use Typhoon\Type\types;
+use Typhoon\Type\IntT;
 
 use function PHPUnit\Framework\assertEquals;
 
@@ -18,6 +18,6 @@ final class HydratorTest extends TestCase
     public function it_can_do_basics(): void
     {
         $hydrator = new Hydrator();
-        assertEquals(1, $hydrator->hydrate(1, types::int));
+        assertEquals(1, $hydrator->hydrate(1, IntT::T));
     }
 }
