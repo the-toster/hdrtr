@@ -56,15 +56,10 @@ use Typhoon\Type\UnionT;
 use Typhoon\Type\Visitor;
 use Typhoon\Type\VoidT;
 
-use function Amp\Socket\SocketAddress\fromString;
-use function Typhoon\Type\callableT;
-
-use const Typhoon\Type\mixedT;
-
 /**
  * @implements Visitor<bool>
  */
-final readonly class IsValueTypeOf implements Visitor
+final readonly class IsSimpleValueTypeOf implements Visitor
 {
     public function __construct(public mixed $data)
     {
@@ -213,37 +208,7 @@ final readonly class IsValueTypeOf implements Visitor
 
     public function arrayT(ArrayT $type): mixed
     {
-        if (!is_array($this->data)) {
-            return false;
-        }
-
-        foreach ($this->data as $key => $value) {
-            if (
-                !$type->keyType->accept(new self($key))
-                ||
-                !$type->valueType->accept(new self($value))
-            ) {
-                return false;
-            }
-        }
-
-        foreach ($type->elements as $element) {
-            $hasElement = array_key_exists($element->key, $this->data);
-            if(!$hasElement && $element->isOptional) {
-                return false;
-            }
-
-            if(!$hasElement) {
-                continue;
-            }
-
-            $dataElement = $this->data[$element->key];
-            if(!$element->type->accept(new self($dataElement))) {
-                return false;
-            }
-        }
-
-        return true;
+        return false;
     }
 
     public function objectT(ObjectT $type): mixed
@@ -259,26 +224,7 @@ final readonly class IsValueTypeOf implements Visitor
 
     public function objectShapeT(ObjectShapeT $type): mixed
     {
-        if (!is_object($this->data)) {
-            return false;
-        }
-
-        foreach ($type->properties as $property) {
-            $hasProperty = property_exists($this->data, $property->name);
-            if (!$hasProperty && $property->isOptional) {
-                return false;
-            }
-
-            if(!$hasProperty) {
-                continue;
-            }
-
-            if (!$property->type->accept(new self($this->data->{$property->name}))) {
-                return false;
-            }
-        }
-
-        return true;
+        return false;
     }
 
     public function iterableBareT(IterableBareT $type): mixed
@@ -288,21 +234,7 @@ final readonly class IsValueTypeOf implements Visitor
 
     public function iterableT(IterableT $type): mixed
     {
-        if (!is_iterable($this->data)) {
-            return false;
-        }
-
-        foreach ($this->data as $key => $value) {
-            if (!$type->keyType->accept(new self($key))) {
-                return false;
-            }
-
-            if (!$type->keyType->accept(new self($value))) {
-                return false;
-            }
-        }
-
-        return true;
+        return false;
     }
 
     public function callableBareT(CallableBareT $type): mixed
@@ -312,24 +244,12 @@ final readonly class IsValueTypeOf implements Visitor
 
     public function callableT(CallableT $type): mixed
     {
-        if (!is_callable($this->data)) {
-            return false;
-        }
-
-        $closure = $this->data instanceof \Closure
-            ? $this->data
-            : ($this->data)(...);
-
-        $ref = new ReflectionFunction($closure);
-
-        $parameters = $ref->getParameters();
-        $returnType = $ref->getReturnType();
-
+        return false;
     }
 
     public function closureT(ClosureT $type): mixed
     {
-        return $this->callableT(callableT($type->parameters, $type->returnType));
+        return false;
     }
 
     public function resourceT(ResourceT $type): mixed

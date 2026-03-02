@@ -12,6 +12,8 @@ final readonly class ReflectionTypeConverter
     {
         return match ($ref::class) {
             \ReflectionNamedType::class => $this->named($ref),
+            \ReflectionUnionType::class => $this->union($ref),
+            \ReflectionIntersectionType::class => $this->intersection($ref),
         };
     }
 
@@ -34,9 +36,27 @@ final readonly class ReflectionTypeConverter
             'callable' => Type\callableT,
             'resource' => Type\resourceT,
             'mixed' => Type\mixedT,
-            default => class_exists($typeName)
-                ? new Type\NamedObjectT($typeName)
-                : Type\objectT,
+            default => new Type\NamedObjectT($typeName),
         };
+    }
+
+    private function intersection(\ReflectionIntersectionType $ref): Type
+    {
+        $r = [];
+        foreach ($ref->getTypes() as $type) {
+            $r[] = $this->convert($type);
+        }
+
+        return Type\intersectionT($r);
+    }
+
+    private function union(\ReflectionUnionType $ref): Type
+    {
+        $r = [];
+        foreach ($ref->getTypes() as $type) {
+            $r[] = $this->convert($type);
+        }
+
+        return Type\unionT($r);
     }
 }

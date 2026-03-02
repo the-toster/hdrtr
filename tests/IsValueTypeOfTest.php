@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Hdrtr\Tests;
 
-use Hdrtr\IsValueTypeOf;
+use Hdrtr\IsSimpleValueTypeOf;
 use PHPUnit\Framework\TestCase;
 
 use Typhoon\Type\TrueT;
@@ -15,6 +15,6 @@ final class IsValueTypeOfTest extends TestCase
 {
     public function testBasicTypes(): void
     {
-        assertTrue(TrueT::T->accept(new IsValueTypeOf(true)));
+        assertTrue(TrueT::T->accept(new IsSimpleValueTypeOf(true)));
     }
 }

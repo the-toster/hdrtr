@@ -54,30 +54,63 @@ use Typhoon\Type\UnionT;
 use Typhoon\Type\Visitor;
 use Typhoon\Type\VoidT;
 
+use function Typhoon\Type\arrayT;
+
 /**
  * @implements Visitor<mixed>
  */
 final readonly class HydratingVisitor implements Visitor
 {
-    public function __construct(public mixed $data)
-    {
+    /**
+     * @param mixed $data
+     * @param list<string> $path
+     */
+    public function __construct(
+        public mixed $data,
+        public array $path = [],
+    ) {
     }
 
-    private function ifTypeOf(Type $type): mixed
+    public function failedToCast(Type $type, int|string|null $offset = null): Error
     {
-        return $type->accept(new IsValueTypeOf($this->data))
+        $path = $this->path;
+        if ($offset !== null) {
+            $path[] = (string) $offset;
+        }
+
+        return Error::failedToCast($type, $this->data, $path);
+    }
+
+    public function errorMissedKey(Type $type, string|null $offset): Error
+    {
+        $path = $this->path;
+        if ($offset !== null) {
+            $path[] = (string) $offset;
+        }
+
+        return Error::missedKey($type, $this->data, $path);
+    }
+
+    public function ifTypeOf(Type $type): mixed
+    {
+        return $type->accept(new IsSimpleValueTypeOf($this->data))
             ? $this->data
-            : Error::create();
+            : $this->failedToCast($type);
     }
 
+    public function forOffset(string|int $name): self
+    {
+        return new self($this->data[$name], [...$this->path, $name]);
+    }
+     
     public function neverT(NeverT $type): mixed
     {
-        return Error::create();
+        return $this->ifTypeOf($type);
     }
 
     public function voidT(VoidT $type): mixed
     {
-        return Error::create();
+        return $this->ifTypeOf($type);
     }
 
     public function nullT(NullT $type): mixed
@@ -192,62 +225,142 @@ final readonly class HydratingVisitor implements Visitor
 
     public function classT(ClassT $type): mixed
     {
-        // TODO: Implement classT() method.
+        return $this->ifTypeOf($type);
     }
 
     public function listT(ListT $type): mixed
     {
-        // TODO: Implement listT() method.
+        if (!is_iterable($this->data)) {
+            return $this->failedToCast($type);
+        }
+
+        $r = [];
+        foreach ($this->data as $key => $value) {
+            $itemResult = $type->accept(new self($value, [...$this->path, $key]));
+            if ($itemResult instanceof Error) {
+                return $itemResult;
+            }
+            $r[] = $itemResult;
+        }
+
+        return $r;
     }
 
     public function arrayBareT(ArrayBareT $type): mixed
     {
-        // TODO: Implement arrayBareT() method.
+        return $this->ifTypeOf($type);
     }
 
     public function arrayT(ArrayT $type): mixed
     {
-        // TODO: Implement arrayT() method.
+        if (!is_iterable($this->data)) {
+            return $this->failedToCast($type);
+        }
+
+        $r = [];
+        foreach ($this->data as $key => $value) {
+            $keyResult = $type->accept(new self($key, [...$this->path, 'keyOf(' . $key . ')']));
+            if ($keyResult instanceof Error) {
+                return $keyResult;
+            }
+
+            $itemResult = $type->accept(new self($value, [...$this->path, $key]));
+            if ($itemResult instanceof Error) {
+                return $itemResult;
+            }
+            $r[] = $itemResult;
+        }
+
+        foreach ($type->elements as $element) {
+            if (array_key_exists($element->key, $r)) {
+                continue;
+            }
+
+            if (!$element->isOptional) {
+                return $this->failedToCast($element->type, $element->key);
+            }
+        }
+
+        return $r;
     }
 
     public function objectT(ObjectT $type): mixed
     {
-        // TODO: Implement objectT() method.
+        if (is_object($this->data)) {
+            return $this->data;
+        }
+
+        if (!is_iterable($this->data)) {
+            return $this->failedToCast($type);
+        }
+
+        $r = new \stdClass();
+        foreach ($this->data as $key => $value) {
+            $r->{$key} = $value;
+        }
+
+        return $r;
     }
 
     public function namedObjectT(NamedObjectT $type): mixed
     {
-        // TODO: Implement namedObjectT() method.
+        if ($type->accept(new IsSimpleValueTypeOf($this->data))) {
+            return $this->data;
+        }
+
+        if (!is_array($this->data)) {
+            $this->failedToCast($type);
+        }
+
+        return (new ObjectInstantiator)->buildInstance($type, $this->data, $this);
     }
 
     public function objectShapeT(ObjectShapeT $type): mixed
     {
-        // TODO: Implement objectShapeT() method.
+        if (!is_array($this->data)) {
+            $this->failedToCast($type);
+        }
+
+        $r = new \stdClass();
+        foreach ($type->properties as $property) {
+            $hasElement = array_key_exists($property->name, $this->data);
+            if (!$hasElement && !$property->isOptional) {
+                return $this->errorMissedKey($type, $property->name);
+            }
+
+            $propertyResult = $property->type->accept($this->forOffset($property->name));
+            if ($propertyResult instanceof Error) {
+                return $propertyResult;
+            }
+            $r->{$property->name} = $propertyResult;
+        }
+
+        return $r;
     }
 
     public function iterableBareT(IterableBareT $type): mixed
     {
-        // TODO: Implement iterableBareT() method.
+        return $this->ifTypeOf($type);
     }
 
     public function iterableT(IterableT $type): mixed
     {
-        // TODO: Implement iterableT() method.
+        return arrayT(key: $type->keyType, value: $type->valueType)->accept($this);
     }
 
     public function callableBareT(CallableBareT $type): mixed
     {
-        // TODO: Implement callableBareT() method.
+        return $this->ifTypeOf($type);
     }
 
     public function callableT(CallableT $type): mixed
     {
-        // TODO: Implement callableT() method.
+        throw new Unimplemented();
     }
 
     public function closureT(ClosureT $type): mixed
     {
-        // TODO: Implement closureT() method.
+        throw new Unimplemented();
     }
 
     public function resourceT(ResourceT $type): mixed
@@ -277,12 +390,19 @@ final readonly class HydratingVisitor implements Visitor
 
     public function intersectionT(IntersectionT $type): mixed
     {
-        // TODO: Implement intersectionT() method.
+        throw new Unimplemented();
     }
 
     public function unionT(UnionT $type): mixed
     {
-        // TODO: Implement unionT() method.
+        foreach ($type->types as $elementType) {
+            $r = $elementType->accept($this);
+            if ($r instanceof Error) {
+                continue;
+            }
+            return $r;
+        }
+        return $r;
     }
 
     public function arrayKeyT(ArrayKeyT $type): mixed
@@ -304,4 +424,5 @@ final readonly class HydratingVisitor implements Visitor
     {
         return $this->ifTypeOf($type);
     }
+
 }
