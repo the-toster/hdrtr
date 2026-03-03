@@ -12,6 +12,8 @@ use PHPStan\PhpDocParser\Parser\TypeParser;
 use PHPStan\PhpDocParser\ParserConfig;
 use Typhoon\Type;
 
+use const Typhoon\Type\mixedT;
+
 final readonly class DocBlockParser
 {
     public Lexer $lexer;
@@ -26,14 +28,45 @@ final readonly class DocBlockParser
         $this->parser = new PhpDocParser($config, $typeParser, $constExprParser);
     }
 
-    public function parseVar(string $comment): Type|ReflectionError
+    /**
+     * @param array<string,Type> $templateArguments
+     */
+    public function parseVar(false|string $definition, array $templateArguments = []): ?Type
     {
-        $tokens = new TokenIterator($this->lexer->tokenize($comment));
-
-        foreach ($this->parser->parse($tokens)->getVarTagValues() as $varTag) {
-            return $this->reflectTypeNode($varTag->type);
+        if ($definition === false) {
+            return null;
         }
 
-        return null;
+        $tokens = new TokenIterator($this->lexer->tokenize($definition));
+        $varTags = $this->parser->parse($tokens)->getVarTagValues();
+
+        $varTag = array_pop($varTags);
+
+        return $varTag === null
+            ? null
+            : (new DocBlockTypeReflector($templateArguments))->reflect($varTag->type);
+    }
+
+    /** @return list<DocBlockTemplate> */
+    public function parseTemplates(false|string $definition): array
+    {
+        if ($definition === false) {
+            return [];
+        }
+
+        $tokens = new TokenIterator($this->lexer->tokenize($definition));
+        $r = [];
+        $templateArguments = [];
+        foreach ($this->parser->parse($tokens)->getTemplateTagValues() as $template) {
+            $defaultNode = $template->default ?? $template->bound ?? $template->lowerBound ?? null;
+
+            $defaultType = $defaultNode === null
+                ? mixedT
+                : (new DocBlockTypeReflector($templateArguments))->reflect($defaultNode);
+
+            $r[] = new DocBlockTemplate($template->name, $defaultType);
+            $templateArguments[$template->name] = $defaultType;
+        }
+        return $r;
     }
 }

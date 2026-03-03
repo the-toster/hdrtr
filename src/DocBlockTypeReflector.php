@@ -36,10 +36,10 @@ use Typhoon\Type;
 final readonly class DocBlockTypeReflector
 {
     /**
-     * @param array<string,Type> $templates
+     * @param array<string,Type> $templateArguments
      */
     public function __construct(
-        private array $templates = [],
+        private array $templateArguments = [],
         private Type $thisType = Type\objectT,
     ) {
     }
@@ -105,7 +105,7 @@ final readonly class DocBlockTypeReflector
 
     private function constType(ConstTypeNode $type): Type
     {
-        $this->constExpr($type->constExpr);
+        return $this->constExpr($type->constExpr);
     }
 
     private function constExprArrayKey(ConstExprNode $node): string|int
@@ -151,22 +151,24 @@ final readonly class DocBlockTypeReflector
 
     private function generic(GenericTypeNode $type): Type
     {
-        return Type\objectT($type->type->name, array_map($this->reflect(...), $type->genericTypes));
+        return $this->identifier($type->type, $type->genericTypes);
     }
 
-    private function identifier(IdentifierTypeNode $type): Type
+    /**
+     * @param list<TypeNode> $genericTypes
+     */
+    private function identifier(IdentifierTypeNode $type, array $genericTypes = []): Type
     {
-        return $this->templates[$type->name] ?? Type\objectT($type->name);
+        $reflectedGenerics = array_map($this->reflect(...), $genericTypes);
+        return match ($type->name) {
+            'list' => Type\listT($reflectedGenerics[0] ?? Type\mixedT),
+            default => $this->templateArguments[$type->name] ?? Type\objectT($type->name)
+        };
     }
 
     private function intersection(IntersectionTypeNode $type): Type
     {
         return Type\intersectionT(array_map($this->reflect(...), $type->types));
-    }
-
-    private function unionT(IntersectionTypeNode $type): Type
-    {
-        return Type\unionT(array_map($this->reflect(...), $type->types));
     }
 
     private function union(UnionTypeNode $type): Type
@@ -188,7 +190,7 @@ final readonly class DocBlockTypeReflector
                 IdentifierTypeNode::class => $item->keyName->name,
             };
             $type = $this->reflect($item->valueType);
-            $props[] = $item->optional
+            $props[$name] = $item->optional
                 ? Type\optional($type)
                 : $type;
         }

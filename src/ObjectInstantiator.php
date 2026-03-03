@@ -13,7 +13,13 @@ final readonly class ObjectInstantiator
     {
         $reflection = new ReflectionClass($type->class);
         $constructorDefaults = $this->getConstructorDefaults($reflection);
-        $propertyReflector = new DocBlockTypeReflector($type);
+        $docBlockParser = new DocBlockParser();
+
+        $classTemplates = $docBlockParser->parseTemplates($reflection->getDocComment());
+        $templateArguments = [];
+        foreach ($classTemplates as $index => $template) {
+            $templateArguments[$template->templateName] = $type->templateArguments[$index] ?? $template->default;
+        }
 
         $r = $reflection->newInstanceWithoutConstructor();
         foreach ($reflection->getProperties() as $property) {
@@ -30,7 +36,8 @@ final readonly class ObjectInstantiator
                 return $hydrator->errorMissedKey($type, $property->name);
             }
 
-            $propertyType = $propertyReflector->reflect($property)
+
+            $propertyType = $docBlockParser->parseVar($property->getDocComment(), $templateArguments)
                 ?? (new ReflectionTypeConverter())->convert($property->getType());
 
             $propertyHydrationResult = $propertyType->accept($hydrator->forOffset($data[$property->name]));
