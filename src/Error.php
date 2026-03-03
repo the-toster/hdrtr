@@ -9,10 +9,10 @@ use Typhoon\Type;
 final readonly class Error
 {
     public function __construct(
-        string $message,
-        Type $type,
-        mixed $data,
-        array $path
+        public string $message,
+        public Type $type,
+        public mixed $data,
+        public array $path
     )
     {
     }

@@ -40,7 +40,7 @@ final readonly class ObjectInstantiator
             $propertyType = $docBlockParser->parseVar($property->getDocComment(), $templateArguments)
                 ?? (new ReflectionTypeConverter())->convert($property->getType());
 
-            $propertyHydrationResult = $propertyType->accept($hydrator->forOffset($data[$property->name]));
+            $propertyHydrationResult = $propertyType->accept($hydrator->forOffset($property->name));
 
             if ($propertyHydrationResult instanceof Error) {
                 return $propertyHydrationResult;

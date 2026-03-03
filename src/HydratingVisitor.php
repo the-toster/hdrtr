@@ -259,12 +259,12 @@ final readonly class HydratingVisitor implements Visitor
 
         $r = [];
         foreach ($this->data as $key => $value) {
-            $keyResult = $type->accept(new self($key, [...$this->path, 'keyOf(' . $key . ')']));
+            $keyResult = $type->keyType->accept(new self($key, [...$this->path, 'keyOf(' . $key . ')']));
             if ($keyResult instanceof Error) {
                 return $keyResult;
             }
 
-            $itemResult = $type->accept(new self($value, [...$this->path, $key]));
+            $itemResult = $type->valueType->accept(new self($value, [...$this->path, $key]));
             if ($itemResult instanceof Error) {
                 return $itemResult;
             }

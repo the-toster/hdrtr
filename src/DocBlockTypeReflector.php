@@ -32,6 +32,8 @@ use PHPStan\PhpDocParser\Ast\Type\TypeNode;
 use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 use Typhoon\Type;
 
+use function Typhoon\Type\arrayT;
+
 
 final readonly class DocBlockTypeReflector
 {
@@ -159,9 +161,11 @@ final readonly class DocBlockTypeReflector
      */
     private function identifier(IdentifierTypeNode $type, array $genericTypes = []): Type
     {
-        $reflectedGenerics = array_map($this->reflect(...), $genericTypes);
+        $templates = array_map($this->reflect(...), $genericTypes);
+        $hasTwoTemplates = isset($templates[0], $templates[1]);
         return match ($type->name) {
-            'list' => Type\listT($reflectedGenerics[0] ?? Type\mixedT),
+            'array' => $hasTwoTemplates ? Type\arrayT($templates[0], $templates[1]) : Type\arrayT(value: $templates[0] ?? Type\mixedT),
+            'list' => Type\listT($templates[0] ?? Type\mixedT),
             default => $this->templateArguments[$type->name] ?? Type\objectT($type->name)
         };
     }
