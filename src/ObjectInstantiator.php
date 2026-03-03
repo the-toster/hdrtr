@@ -13,7 +13,7 @@ final readonly class ObjectInstantiator
     {
         $reflection = new ReflectionClass($type->class);
         $constructorDefaults = $this->getConstructorDefaults($reflection);
-        $propertyReflector = new DocBlockReflector($type);
+        $propertyReflector = new DocBlockTypeReflector($type);
 
         $r = $reflection->newInstanceWithoutConstructor();
         foreach ($reflection->getProperties() as $property) {
