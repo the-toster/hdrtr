@@ -163,9 +163,46 @@ final readonly class DocBlockTypeReflector
     {
         $templates = array_map($this->reflect(...), $genericTypes);
         $hasTwoTemplates = isset($templates[0], $templates[1]);
+        $firstTemplate = $templates[0] ?? Type\mixedT;
         return match ($type->name) {
-            'array' => $hasTwoTemplates ? Type\arrayT($templates[0], $templates[1]) : Type\arrayT(value: $templates[0] ?? Type\mixedT),
-            'list' => Type\listT($templates[0] ?? Type\mixedT),
+            'null' => Type\nullT,
+            'true' => Type\trueT,
+            'false' => Type\falseT,
+            'bool' => Type\boolT,
+            'int' => Type\intT,
+            'positive-int' => Type\positiveIntT,
+            'negative-int' => Type\negativeIntT,
+            'non-negative-int' => Type\nonNegativeIntT,
+            'non-positive-int' => Type\nonPositiveIntT,
+            'non-zero-int' => Type\nonZeroIntT,
+            'float' => Type\floatT,
+            'string' => Type\stringT,
+            'non-empty-string' => Type\nonEmptyStringT,
+            'numeric-string' => Type\numericStringT,
+            'lowercase-string' => Type\lowercaseStringT,
+            'truthy-string', 'non-falsy-string' => Type\truthyStringT,
+            'array-key' => Type\arrayKeyT,
+            'numeric' => Type\numericT,
+            'scalar' => Type\scalarT,
+            'array' => $hasTwoTemplates
+                ? Type\arrayT($templates[0], $templates[1])
+                : Type\arrayT(value: $firstTemplate),
+            'non-empty-array' => $hasTwoTemplates
+                ? Type\nonEmptyArrayT($templates[0], $templates[1])
+                : Type\nonEmptyArrayT(value: $firstTemplate),
+            'list' => Type\listT($firstTemplate),
+            'non-empty-list' => Type\nonEmptyListT($firstTemplate),
+            'iterable' => $hasTwoTemplates
+                ? Type\iterableT($templates[0], $templates[1])
+                : Type\iterableT(value: $firstTemplate),
+            'class-string' => Type\classT($templates[0] ?? Type\objectT),
+            'object' => Type\objectT,
+            'callable' => Type\callableT,
+            'resource' => Type\resourceT,
+            'mixed' => Type\mixedT,
+            'void' => Type\voidT,
+            'never', 'never-return', 'never-returns', 'no-return' => Type\neverT,
+            'self', 'static', '$this' => $this->thisType,
             default => $this->templateArguments[$type->name] ?? Type\objectT($type->name)
         };
     }
