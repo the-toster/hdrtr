@@ -77,7 +77,7 @@ final readonly class IsSimpleValueTypeOf implements Visitor
 
     public function nullT(NullT $type): mixed
     {
-        return is_null($type);
+        return is_null($this->data);
     }
 
     public function falseT(FalseT $type): mixed
