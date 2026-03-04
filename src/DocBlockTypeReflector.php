@@ -96,7 +96,6 @@ final readonly class DocBlockTypeReflector
 
     private function callable(CallableTypeNode $_type): Type\CallableT
     {
-        // TODO: something
         return Type\callableT();
     }
 
