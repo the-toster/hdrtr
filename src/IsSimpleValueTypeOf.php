@@ -144,7 +144,7 @@ final readonly class IsSimpleValueTypeOf implements Visitor
 
     public function floatT(FloatT $type): mixed
     {
-        return is_float($this->data);
+        return is_int($this->data) || is_float($this->data);
     }
 
     public function floatValueT(FloatValueT $type): mixed
