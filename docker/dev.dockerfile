@@ -11,3 +11,5 @@ ADD --chmod=0755 \
 
 RUN install-php-extensions xdebug opcache @composer \
     bcmath
+
+COPY php.ini /usr/local/etc/php/conf.d/zz-php.ini
