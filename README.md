@@ -1,4 +1,4 @@
-# Гидратор с поддержкой docblock типов
+# Гидратор с поддержкой PHPDoc типов
 
 На основе `typhoon-php/types` и `phpstan/phpdoc-parser`.
 

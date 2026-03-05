@@ -8,7 +8,7 @@
       "ignore": ["PKSA-z3gr-8qht-p93v"]
     }
   },
-  "description": "hydrator",
+  "description": "Hydrator with PHPDoc types support",
   "type": "library",
   "require": {
     "php": "^8.3",
