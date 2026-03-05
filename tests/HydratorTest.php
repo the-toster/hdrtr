@@ -32,6 +32,15 @@ final class HydratorTest extends TestCase
     }
 
     #[Test]
+    public function it_can_hydrate_properties_with_defaults(): void
+    {
+        $hydrator = new Hydrator();
+        $data = [];
+
+        assertEquals(new ObjectWithDefaultProperty(), $hydrator->hydrate($data, objectT(ObjectWithDefaultProperty::class)));
+    }
+
+    #[Test]
     public function it_can_hydrate_promoted_properties(): void
     {
         $hydrator = new Hydrator();
@@ -50,13 +59,25 @@ final class HydratorTest extends TestCase
     }
 
     #[Test]
+    public function it_respects_property_annotation(): void
+    {
+        $hydrator = new Hydrator();
+        $data = ['items' => ['a', 'b', 'c']];
+
+        assertEquals(
+            Error::failedToCast(intT, 'a', ['items', '0']),
+            $hydrator->hydrate($data, objectT(ObjectWithDefaultProperty::class))
+        );
+    }
+
+    #[Test]
     public function it_respects_promoted_property_annotation(): void
     {
         $hydrator = new Hydrator();
         $data = ['items' => ['a', 'b', 'c']];
 
         assertEquals(
-            Error::failedToCast(stringT, 'a', ['items', '0']),
+            Error::failedToCast(intT, 'a', ['items', '0']),
             $hydrator->hydrate($data, objectT(ObjectWithDefaultPromotedProperty::class))
         );
     }

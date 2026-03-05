@@ -24,7 +24,7 @@ final readonly class ObjectInstantiator
         $r = $reflection->newInstanceWithoutConstructor();
         foreach ($reflection->getProperties() as $property) {
             if (!array_key_exists($property->name, $data)) {
-                if (!$property->hasDefaultValue()) {
+                if ($property->hasDefaultValue()) {
                     continue;
                 }
 
