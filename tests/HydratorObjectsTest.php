@@ -13,6 +13,7 @@ use function Typhoon\Type\arrayShapeT;
 use function Typhoon\Type\objectShapeT;
 use function Typhoon\Type\objectT;
 use const Typhoon\Type\intT;
+use const Typhoon\Type\stringT;
 
 final class HydratorObjectsTest extends TestCase
 {
@@ -73,6 +74,11 @@ final class HydratorObjectsTest extends TestCase
         assertEquals(
             Error::failedToCast(intT, 'a', ['items', '0']),
             $hydrator->hydrate($data, objectT(ObjectWithDefaultPromotedProperty::class))
+        );
+
+        assertEquals(
+            new ObjectWithDefaultPromotedProperty(['a', 'b', 'c']),
+            $hydrator->hydrate($data, objectT(ObjectWithDefaultPromotedProperty::class, [stringT]))
         );
     }
 

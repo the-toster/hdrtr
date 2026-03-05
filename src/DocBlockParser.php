@@ -31,7 +31,7 @@ final readonly class DocBlockParser
     /**
      * @param array<string,Type> $templateArguments
      */
-    public function parseVar(false|string $definition, array $templateArguments = []): ?Type
+    public function parseVar(false|string $definition, array $templateArguments): ?Type
     {
         if ($definition === false) {
             return null;
@@ -48,9 +48,9 @@ final readonly class DocBlockParser
     }
 
     /** @return list<DocBlockTemplate> */
-    public function parseTemplates(false|string $definition): array
+    public function parseTemplates(null|false|string $definition): array
     {
-        if ($definition === false) {
+        if (!is_string($definition)) {
             return [];
         }
 
@@ -67,6 +67,28 @@ final readonly class DocBlockParser
             $r[] = new DocBlockTemplate($template->name, $defaultType);
             $templateArguments[$template->name] = $defaultType;
         }
+        return $r;
+    }
+
+
+    /**
+     * @param array<string,Type> $templateArguments
+     * @return array<string,Type>
+     */
+    public function parseParam(null|false|string $definition, array $templateArguments): array
+    {
+        if (!is_string($definition)) {
+            return [];
+        }
+
+        $reflector = (new DocBlockTypeReflector($templateArguments));
+        $r = [];
+        $tokens = new TokenIterator($this->lexer->tokenize($definition));
+        foreach ($this->parser->parse($tokens)->getParamTagValues() as $param) {
+            $name = ltrim($param->parameterName, '$');
+            $r[$name] = $reflector->reflect($param->type);
+        }
+
         return $r;
     }
 }

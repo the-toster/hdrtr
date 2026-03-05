@@ -24,6 +24,20 @@ final readonly class ObjectInstantiator
             $templateArguments[$template->templateName] = $type->templateArguments[$index] ?? $template->default;
         }
 
+        $constructorTemplates = $docBlockParser->parseTemplates($reflection->getConstructor()?->getDocComment());
+        $constructorTemplateArguments = $templateArguments;
+        foreach ($constructorTemplates as $template) {
+            // темплейты на конструкторе затеняют темплейты класса.
+            // т.о. часть параметров класса становиться не видна
+            $constructorTemplateArguments[$template->templateName] = $template->default;
+        }
+
+        $constructorAnnotations = $docBlockParser
+            ->parseParam(
+                $reflection->getConstructor()?->getDocComment(),
+                $constructorTemplateArguments
+            );
+
         $r = $reflection->newInstanceWithoutConstructor();
         foreach ($reflection->getProperties() as $property) {
             if (!array_key_exists($property->name, $data)) {
@@ -39,9 +53,10 @@ final readonly class ObjectInstantiator
                 return $hydrator->errorMissedKey($type, $property->name);
             }
 
-
-            $propertyType = $docBlockParser->parseVar($property->getDocComment(), $templateArguments)
-                ?? (new ReflectionTypeConverter())->convert($property->getType());
+            $nativeType = (new ReflectionTypeConverter())->convert($property->getType());
+            $propertyType = $property->isPromoted()
+                ? $constructorAnnotations[$property->name] ?? $nativeType
+                : $docBlockParser->parseVar($property->getDocComment(), $templateArguments) ?? $nativeType;
 
             $propertyHydrationResult = $propertyType->accept($hydrator->forOffset($property->name));
 

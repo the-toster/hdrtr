@@ -81,7 +81,7 @@ final readonly class HydratingVisitor implements Visitor
         return Error::failedToCast($type, $this->data, $path);
     }
 
-    public function errorMissedKey(Type $type, string|null $offset): Error
+    public function errorMissedKey(Type $type, int|string|null $offset): Error
     {
         $path = $this->path;
         if ($offset !== null) {

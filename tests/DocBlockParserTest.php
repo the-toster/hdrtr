@@ -20,7 +20,7 @@ final class DocBlockParserTest extends TestCase
     {
         $parser = new DocBlockParser();
 
-        assertEquals(unionT(intT(2), intT(1)), $parser->parseVar('/** @var 2|1 $abc */'));
+        assertEquals(unionT(intT(2), intT(1)), $parser->parseVar('/** @var 2|1 $abc */', []));
     }
 
     public function testGeneric(): void
