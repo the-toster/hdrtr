@@ -9,6 +9,8 @@ use Hdrtr\Hydrator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Typhoon\Type;
+
 use function PHPUnit\Framework\assertEquals;
 use function PHPUnit\Framework\assertInstanceOf;
 use const Typhoon\Type\boolT;
@@ -44,7 +46,7 @@ final class BasicTypesHydrationTest extends TestCase
 
     #[Test]
     #[DataProvider('validCases')]
-    public function it_hydrates(mixed $data, mixed $type): void
+    public function it_hydrates(mixed $data, Type $type): void
     {
         assertEquals($data, $this->hydrator->hydrate($data, $type));
     }
@@ -62,7 +64,7 @@ final class BasicTypesHydrationTest extends TestCase
 
     #[Test]
     #[DataProvider('invalidCases')]
-    public function it_returns_error_on_type_mismatch(mixed $data, mixed $type): void
+    public function it_returns_error_on_type_mismatch(mixed $data, Type $type): void
     {
         assertInstanceOf(Error::class, $this->hydrator->hydrate($data, $type));
     }

@@ -8,12 +8,17 @@ use Typhoon\Type;
 
 final readonly class ReflectionTypeConverter
 {
-    public function convert(\ReflectionType $ref): Type
+    public function convert(?\ReflectionType $ref): Type
     {
+        if ($ref === null) {
+            return Type\mixedT;
+        }
+
         return match ($ref::class) {
             \ReflectionNamedType::class => $this->named($ref),
             \ReflectionUnionType::class => $this->union($ref),
             \ReflectionIntersectionType::class => $this->intersection($ref),
+            default => throw new \RuntimeException()
         };
     }
 
@@ -36,8 +41,10 @@ final readonly class ReflectionTypeConverter
             'callable' => Type\callableT,
             'resource' => Type\resourceT,
             'mixed' => Type\mixedT,
-            default => new Type\NamedObjectT($typeName),
+            default => TyphoonFactory::object($typeName)
         };
+
+
     }
 
     private function intersection(\ReflectionIntersectionType $ref): Type
@@ -45,6 +52,10 @@ final readonly class ReflectionTypeConverter
         $r = [];
         foreach ($ref->getTypes() as $type) {
             $r[] = $this->convert($type);
+        }
+
+        if(count($r) === 0) {
+            return Type\neverT;
         }
 
         return Type\intersectionT($r);
@@ -55,6 +66,10 @@ final readonly class ReflectionTypeConverter
         $r = [];
         foreach ($ref->getTypes() as $type) {
             $r[] = $this->convert($type);
+        }
+
+        if(count($r) === 0) {
+            return Type\neverT;
         }
 
         return Type\unionT($r);

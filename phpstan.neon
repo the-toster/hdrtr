@@ -3,3 +3,7 @@ parameters:
 	paths:
 		- src
 		- tests
+	ignoreErrors:
+	    -
+	      identifier: argument.templateType
+	      path: src/DocBlockTypeReflector.php

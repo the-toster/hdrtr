@@ -100,6 +100,14 @@ final readonly class HydratingVisitor implements Visitor
 
     public function forOffset(string|int $name): self
     {
+        if(!is_array($this->data)) {
+            throw new \RuntimeException();
+        }
+
+        if(!array_key_exists($name, $this->data)) {
+            throw new \RuntimeException();
+        }
+
         return new self($this->data[$name], [...$this->path, $name]);
     }
      
@@ -230,13 +238,13 @@ final readonly class HydratingVisitor implements Visitor
 
     public function listT(ListT $type): mixed
     {
-        if (!is_iterable($this->data)) {
+        if (!is_array($this->data)) {
             return $this->failedToCast($type);
         }
 
         $r = [];
         foreach ($this->data as $key => $value) {
-            $itemResult = $type->accept(new self($value, [...$this->path, $key]));
+            $itemResult = $type->accept($this->forOffset($key));
             if ($itemResult instanceof Error) {
                 return $itemResult;
             }
@@ -253,7 +261,7 @@ final readonly class HydratingVisitor implements Visitor
 
     public function arrayT(ArrayT $type): mixed
     {
-        if (!is_iterable($this->data)) {
+        if (!is_array($this->data)) {
             return $this->failedToCast($type);
         }
 
@@ -264,7 +272,7 @@ final readonly class HydratingVisitor implements Visitor
                 return $keyResult;
             }
 
-            $itemResult = $type->valueType->accept(new self($value, [...$this->path, $key]));
+            $itemResult = $type->valueType->accept($this->forOffset($key));
             if ($itemResult instanceof Error) {
                 return $itemResult;
             }
@@ -309,7 +317,7 @@ final readonly class HydratingVisitor implements Visitor
         }
 
         if (!is_array($this->data)) {
-            $this->failedToCast($type);
+            return $this->failedToCast($type);
         }
 
         return (new ObjectInstantiator)->buildInstance($type, $this->data, $this);
@@ -318,7 +326,7 @@ final readonly class HydratingVisitor implements Visitor
     public function objectShapeT(ObjectShapeT $type): mixed
     {
         if (!is_array($this->data)) {
-            $this->failedToCast($type);
+            return $this->failedToCast($type);
         }
 
         $r = new \stdClass();
@@ -345,6 +353,7 @@ final readonly class HydratingVisitor implements Visitor
 
     public function iterableT(IterableT $type): mixed
     {
+        /** @phpstan-ignore argument.templateType */
         return arrayT(key: $type->keyType, value: $type->valueType)->accept($this);
     }
 

@@ -8,6 +8,9 @@ use Typhoon\Type;
 
 final readonly class Error
 {
+    /**
+     * @param list<string> $path
+     */
     public function __construct(
         public string $message,
         public Type $type,
@@ -17,11 +20,17 @@ final readonly class Error
     {
     }
 
+    /**
+     * @param list<string> $path
+     */
     public static function failedToCast(Type $type, mixed $data, array $path): self
     {
         return new self('failed to cast', $type, $data, $path);
     }
 
+    /**
+     * @param list<string> $path
+     */
     public static function missedKey(Type $type, mixed $data, array $path): self
     {
         return new self('failed to cast', $type, $data, $path);

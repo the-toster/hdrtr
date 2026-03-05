@@ -32,9 +32,6 @@ use PHPStan\PhpDocParser\Ast\Type\TypeNode;
 use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 use Typhoon\Type;
 
-use function Typhoon\Type\arrayT;
-
-
 final readonly class DocBlockTypeReflector
 {
     /**
@@ -52,7 +49,7 @@ final readonly class DocBlockTypeReflector
             ArrayShapeNode::class => $this->arrayShape($type),
             ArrayTypeNode::class => $this->array($type),
             CallableTypeNode::class => $this->callable($type),
-            ConditionalTypeForParameterNode::class => null,
+            ConditionalTypeForParameterNode::class => $this->conditionalTypeForParameter($type),
             ConditionalTypeNode::class => $this->conditional($type),
             ConstTypeNode::class => $this->constType($type),
             GenericTypeNode::class => $this->generic($type),
@@ -64,6 +61,7 @@ final readonly class DocBlockTypeReflector
             OffsetAccessTypeNode::class => $this->offsetAccess($type),
             ThisTypeNode::class => $this->thisTypeNode($type),
             UnionTypeNode::class => $this->union($type),
+            default => throw new \RuntimeException(),
         };
     }
 
@@ -80,13 +78,20 @@ final readonly class DocBlockTypeReflector
             $elements[$key] = $item->optional ? Type\optional($itemType) : $itemType;
         }
 
-        return $type->sealed
-            ? Type\arrayShapeT($elements)
-            : Type\unsealedArrayShapeT(
-                elements: $elements,
-                key: $this->reflect($type->unsealedType->keyType),
-                value: $this->reflect($type->unsealedType->valueType),
-            );
+        $unsealedType = $type->unsealedType;
+        if ($unsealedType === null) {
+            return Type\arrayShapeT($elements);
+        }
+
+        $keyType = $unsealedType->keyType === null
+            ? Type\arrayKeyT
+            : $this->reflect($unsealedType->keyType);
+
+        return Type\unsealedArrayShapeT(
+            elements: $elements,
+            key: $keyType,
+            value: $this->reflect($type->unsealedType->valueType),
+        );
     }
 
     private function array(ArrayTypeNode $type): Type\ArrayT
@@ -104,17 +109,29 @@ final readonly class DocBlockTypeReflector
         return Type\unionT($this->reflect($type->if), $this->reflect($type->else));
     }
 
+    private function conditionalTypeForParameter(ConditionalTypeForParameterNode $type): Type
+    {
+        return Type\unionT($this->reflect($type->if), $this->reflect($type->else));
+    }
+
     private function constType(ConstTypeNode $type): Type
     {
         return $this->constExpr($type->constExpr);
     }
 
-    private function constExprArrayKey(ConstExprNode $node): string|int
+    private function constExprArrayKey(ConstExprNode|IdentifierTypeNode $node): string|int
     {
+        if ($node instanceof ConstFetchNode) {
+            $key = constant((string) $node);
+            if (!is_string($key) && !is_int($key)) {
+                throw new \RuntimeException('invalid array key const: ' . $node);
+            }
+            return $key;
+        }
+
         return match ($node::class) {
             ConstExprIntegerNode::class => $node->value,
             ConstExprStringNode::class => $node->value,
-            ConstFetchNode::class => constant((string) $node),
             IdentifierTypeNode::class => $node->name,
             default => throw new \RuntimeException('unexpected array key const expression')
         };
@@ -131,11 +148,12 @@ final readonly class DocBlockTypeReflector
             ConstExprNullNode::class => Type\nullT,
             ConstExprStringNode::class => Type\stringT($node->value),
             ConstExprTrueNode::class => Type\trueT,
-            ConstFetchNode::class => $node->className === ''
-                ? Type\constantT($node->name)
-                : Type\classConstantT($node->className, $node->name),
+            ConstFetchNode::class => TyphoonFactory::constant($node),
+            default => throw new \RuntimeException()
         };
     }
+
+
 
     private function constExprArrayNode(ConstExprArrayNode $node): Type\ArrayT
     {
@@ -152,7 +170,7 @@ final readonly class DocBlockTypeReflector
 
     private function generic(GenericTypeNode $type): Type
     {
-        return $this->identifier($type->type, $type->genericTypes);
+        return $this->identifier($type->type, array_values($type->genericTypes));
     }
 
     /**
@@ -163,6 +181,7 @@ final readonly class DocBlockTypeReflector
         $templates = array_map($this->reflect(...), $genericTypes);
         $hasTwoTemplates = isset($templates[0], $templates[1]);
         $firstTemplate = $templates[0] ?? Type\mixedT;
+
         return match ($type->name) {
             'null' => Type\nullT,
             'true' => Type\trueT,
@@ -202,18 +221,18 @@ final readonly class DocBlockTypeReflector
             'void' => Type\voidT,
             'never', 'never-return', 'never-returns', 'no-return' => Type\neverT,
             'self', 'static', '$this' => $this->thisType,
-            default => $this->templateArguments[$type->name] ?? Type\objectT($type->name)
+            default => $this->templateArguments[$type->name] ?? TyphoonFactory::object($type->name)
         };
     }
 
     private function intersection(IntersectionTypeNode $type): Type
     {
-        return Type\intersectionT(array_map($this->reflect(...), $type->types));
+       return TyphoonFactory::intersection(array_map($this->reflect(...), $type->types));
     }
 
     private function union(UnionTypeNode $type): Type
     {
-        return Type\unionT(array_map($this->reflect(...), $type->types));
+       return TyphoonFactory::union(array_map($this->reflect(...), $type->types));
     }
 
     private function nullable(NullableTypeNode $type): Type
@@ -228,8 +247,14 @@ final readonly class DocBlockTypeReflector
             $name = match ($item->keyName::class) {
                 ConstExprStringNode::class => $item->keyName->value,
                 IdentifierTypeNode::class => $item->keyName->name,
+                default => throw new \RuntimeException(),
             };
             $type = $this->reflect($item->valueType);
+
+            if($name === '') {
+                throw new \RuntimeException();
+            }
+
             $props[$name] = $item->optional
                 ? Type\optional($type)
                 : $type;
@@ -246,6 +271,4 @@ final readonly class DocBlockTypeReflector
     {
         return $this->thisType;
     }
-
-
 }

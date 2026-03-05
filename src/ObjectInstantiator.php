@@ -9,6 +9,9 @@ use Typhoon\Type\NamedObjectT;
 
 final readonly class ObjectInstantiator
 {
+    /**
+     * @param array<mixed> $data
+     */
     public function buildInstance(NamedObjectT $type, array $data, HydratingVisitor $hydrator): object
     {
         $reflection = new ReflectionClass($type->class);
@@ -52,6 +55,11 @@ final readonly class ObjectInstantiator
         return $r;
     }
 
+    /**
+     * @template T of object
+     * @param ReflectionClass<T> $reflectionClass
+     * @return array<mixed>
+     */
     private function getConstructorDefaults(\ReflectionClass $reflectionClass): array
     {
         /**
