@@ -9,21 +9,15 @@ use Hdrtr\Hydrator;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use function PHPUnit\Framework\assertEquals;
+use function Typhoon\Type\arrayShapeT;
+use function Typhoon\Type\objectShapeT;
 use function Typhoon\Type\objectT;
 use const Typhoon\Type\intT;
-use const Typhoon\Type\stringT;
 
-final class HydratorTest extends TestCase
+final class HydratorObjectsTest extends TestCase
 {
     #[Test]
-    public function it_can_do_basics(): void
-    {
-        $hydrator = new Hydrator();
-        assertEquals(1, $hydrator->hydrate(1, intT));
-    }
-
-    #[Test]
-    public function it_can_hydrate_generic(): void
+    public function generic(): void
     {
         $hydrator = new Hydrator();
         $data = ['items' => [1, 2, 3]];
@@ -32,7 +26,7 @@ final class HydratorTest extends TestCase
     }
 
     #[Test]
-    public function it_can_hydrate_properties_with_defaults(): void
+    public function properties_with_defaults(): void
     {
         $hydrator = new Hydrator();
         $data = [];
@@ -41,7 +35,7 @@ final class HydratorTest extends TestCase
     }
 
     #[Test]
-    public function it_can_hydrate_promoted_properties(): void
+    public function promoted_properties(): void
     {
         $hydrator = new Hydrator();
         $data = ['items' => [4, 5]];
@@ -50,7 +44,7 @@ final class HydratorTest extends TestCase
     }
 
     #[Test]
-    public function it_can_hydrate_promoted_properties_with_defaults(): void
+    public function promoted_properties_with_defaults(): void
     {
         $hydrator = new Hydrator();
         $data = [];
@@ -59,7 +53,7 @@ final class HydratorTest extends TestCase
     }
 
     #[Test]
-    public function it_respects_property_annotation(): void
+    public function respect_property_annotation(): void
     {
         $hydrator = new Hydrator();
         $data = ['items' => ['a', 'b', 'c']];
@@ -71,7 +65,7 @@ final class HydratorTest extends TestCase
     }
 
     #[Test]
-    public function it_respects_promoted_property_annotation(): void
+    public function respect_promoted_property_annotation(): void
     {
         $hydrator = new Hydrator();
         $data = ['items' => ['a', 'b', 'c']];
@@ -80,5 +74,12 @@ final class HydratorTest extends TestCase
             Error::failedToCast(intT, 'a', ['items', '0']),
             $hydrator->hydrate($data, objectT(ObjectWithDefaultPromotedProperty::class))
         );
+    }
+
+    #[Test]
+    public function object_shape(): void
+    {
+        $r = (new Hydrator())->hydrate(['x' => 1], objectShapeT(['x' => intT]));
+        assertEquals((object)['x' => 1], $r);
     }
 }

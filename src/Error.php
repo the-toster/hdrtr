@@ -36,4 +36,13 @@ final readonly class Error
         return new self('failed to cast', $type, $data, $path);
     }
 
+
+    /**
+     * @param list<string> $path
+     */
+    public static function shouldBeNonEmpty(Type\ArrayT $type, mixed $data, array $path): self
+    {
+        return new self('data should by non empty', $type, $data, $path);
+    }
+
 }

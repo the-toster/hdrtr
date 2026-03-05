@@ -244,7 +244,7 @@ final readonly class HydratingVisitor implements Visitor
 
         $r = [];
         foreach ($this->data as $key => $value) {
-            $itemResult = $type->accept($this->forOffset($key));
+            $itemResult = $type->valueType->accept($this->forOffset($key));
             if ($itemResult instanceof Error) {
                 return $itemResult;
             }
@@ -266,7 +266,37 @@ final readonly class HydratingVisitor implements Visitor
         }
 
         $r = [];
+        foreach ($type->elements as $element) {
+            if (!array_key_exists($element->key, $this->data)) {
+                if($element->isOptional) {
+                    continue;
+                }
+
+                return $this->errorMissedKey($type, $element->key);
+            }
+
+            $elementResult = $element->type->accept($this->forOffset($element->key));
+
+            if($elementResult instanceof Error) {
+                return $elementResult;
+            }
+
+            $r[$element->key] = $elementResult;
+        }
+
+        if(
+            $type->valueType->accept(new IsNever())
+            && $type->keyType->accept(new IsNever())
+        ) {
+            // sealed
+            return $r;
+        }
+
         foreach ($this->data as $key => $value) {
+            if(array_key_exists($key, $r)) {
+                continue;
+            }
+
             $keyResult = $type->keyType->accept(new self($key, [...$this->path, 'keyOf(' . $key . ')']));
             if ($keyResult instanceof Error) {
                 return $keyResult;
@@ -276,18 +306,13 @@ final readonly class HydratingVisitor implements Visitor
             if ($itemResult instanceof Error) {
                 return $itemResult;
             }
-            $r[] = $itemResult;
+            $r[$key] = $itemResult;
         }
 
-        foreach ($type->elements as $element) {
-            if (array_key_exists($element->key, $r)) {
-                continue;
-            }
-
-            if (!$element->isOptional) {
-                return $this->failedToCast($element->type, $element->key);
-            }
+        if($type->isNonEmpty && count($r) === 0) {
+            return Error::shouldBeNonEmpty($type, $this->data, $this->path);
         }
+
 
         return $r;
     }
