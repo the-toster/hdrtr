@@ -67,27 +67,19 @@ final readonly class HydratingVisitor implements Visitor
      */
     public function __construct(
         public mixed $data,
+        private Hydrator $hydrator,
         public array $path = [],
     ) {
     }
 
-    public function failedToCast(Type $type, int|string|null $offset = null): Error
+    public function failedToCast(Type $type): Error
     {
-        $path = $this->path;
-        if ($offset !== null) {
-            $path[] = (string) $offset;
-        }
-
-        return Error::failedToCast($type, $this->data, $path);
+        return Error::failedToCast($type, $this->data, $this->path);
     }
 
-    public function errorMissedKey(Type $type, int|string|null $offset): Error
+    public function errorMissedKey(Type $type, int|string $offset): Error
     {
-        $path = $this->path;
-        if ($offset !== null) {
-            $path[] = (string) $offset;
-        }
-
+        $path[] = (string) $offset;
         return Error::missedKey($type, $this->data, $path);
     }
 
@@ -98,7 +90,12 @@ final readonly class HydratingVisitor implements Visitor
             : $this->failedToCast($type);
     }
 
-    public function forOffset(string|int $name): self
+    /**
+     * @template T
+     * @param Type<T> $type
+     * @return Error|T
+     */
+    public function hydrateOffset(string|int $name, Type $type): mixed
     {
         if(!is_array($this->data)) {
             throw new \RuntimeException();
@@ -108,7 +105,7 @@ final readonly class HydratingVisitor implements Visitor
             throw new \RuntimeException();
         }
 
-        return new self($this->data[$name], [...$this->path, $name]);
+        return $this->hydrator->hydrate($this->data[$name], $type, [...$this->path, $name]);
     }
      
     public function neverT(NeverT $type): mixed
@@ -244,7 +241,7 @@ final readonly class HydratingVisitor implements Visitor
 
         $r = [];
         foreach ($this->data as $key => $value) {
-            $itemResult = $type->valueType->accept($this->forOffset($key));
+            $itemResult = $this->hydrateOffset($key, $type->valueType);
             if ($itemResult instanceof Error) {
                 return $itemResult;
             }
@@ -275,7 +272,7 @@ final readonly class HydratingVisitor implements Visitor
                 return $this->errorMissedKey($type, $element->key);
             }
 
-            $elementResult = $element->type->accept($this->forOffset($element->key));
+            $elementResult = $this->hydrateOffset($element->key, $element->type);
 
             if($elementResult instanceof Error) {
                 return $elementResult;
@@ -297,12 +294,12 @@ final readonly class HydratingVisitor implements Visitor
                 continue;
             }
 
-            $keyResult = $type->keyType->accept(new self($key, [...$this->path, 'keyOf(' . $key . ')']));
+            $keyResult = $this->hydrator->hydrate($key, $type->keyType, [...$this->path, 'keyOf(' . $key . ')']);
             if ($keyResult instanceof Error) {
                 return $keyResult;
             }
 
-            $itemResult = $type->valueType->accept($this->forOffset($key));
+            $itemResult = $this->hydrateOffset($key, $type->valueType);
             if ($itemResult instanceof Error) {
                 return $itemResult;
             }
@@ -361,7 +358,7 @@ final readonly class HydratingVisitor implements Visitor
                 return $this->errorMissedKey($type, $property->name);
             }
 
-            $propertyResult = $property->type->accept($this->forOffset($property->name));
+            $propertyResult = $this->hydrateOffset($property->name, $property->type);
             if ($propertyResult instanceof Error) {
                 return $propertyResult;
             }
@@ -378,8 +375,8 @@ final readonly class HydratingVisitor implements Visitor
 
     public function iterableT(IterableT $type): mixed
     {
-        /** @phpstan-ignore argument.templateType */
-        return arrayT(key: $type->keyType, value: $type->valueType)->accept($this);
+        /** @phpstan-ignore argument.templateType  */
+        return $this->hydrator->hydrate($this->data, arrayT(key: $type->keyType, value: $type->valueType));
     }
 
     public function callableBareT(CallableBareT $type): mixed
@@ -430,13 +427,13 @@ final readonly class HydratingVisitor implements Visitor
     public function unionT(UnionT $type): mixed
     {
         foreach ($type->types as $elementType) {
-            $r = $elementType->accept($this);
+            $r = $this->hydrator->hydrate($this->data, $elementType);
             if ($r instanceof Error) {
                 continue;
             }
             return $r;
         }
-        return $r;
+        return $this->failedToCast($type);
     }
 
     public function arrayKeyT(ArrayKeyT $type): mixed

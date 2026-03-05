@@ -9,12 +9,28 @@ use Typhoon\Type;
 final readonly class Hydrator
 {
     /**
+     * @param list<CustomHydrator> $customHydrators
+     */
+    public function __construct(
+        private array $customHydrators = [],
+    )
+    {
+    }
+
+    /**
      * @template T
      * @param  Type<T>  $type
+     * @param  list<string> $path
      * @return T|Error
      */
-    public function hydrate(mixed $data, Type $type): mixed
+    public function hydrate(mixed $data, Type $type, array $path = []): mixed
     {
-        return $type->accept(new HydratingVisitor($data));
+        foreach ($this->customHydrators as $customHydrator) {
+            if ($customHydrator->supports($data, $type)) {
+                return $customHydrator->hydrate($data, $type, $path, $this);
+            }
+        }
+
+        return $type->accept(new HydratingVisitor($data, $this, $path));
     }
 }

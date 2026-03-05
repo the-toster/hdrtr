@@ -58,7 +58,7 @@ final readonly class ObjectInstantiator
                 ? $constructorAnnotations[$property->name] ?? $nativeType
                 : $docBlockParser->parseVar($property->getDocComment(), $templateArguments) ?? $nativeType;
 
-            $propertyHydrationResult = $propertyType->accept($hydrator->forOffset($property->name));
+            $propertyHydrationResult = $hydrator->hydrateOffset($property->name, $propertyType);
 
             if ($propertyHydrationResult instanceof Error) {
                 return $propertyHydrationResult;
