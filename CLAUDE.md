@@ -18,7 +18,7 @@ docker compose run --rm php bash
 ./vendor/bin/phpunit --filter testMethodName
 
 # Static analysis
-./vendor/bin/psalm
+./vendor/bin/phpstan
 ```
 
 ## Architecture
