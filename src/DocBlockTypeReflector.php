@@ -39,7 +39,7 @@ final readonly class DocBlockTypeReflector
      */
     public function __construct(
         private array $templateArguments = [],
-        private NameResolver $nameResolver,
+        private ?NameResolver $nameResolver = null,
         private Type $thisType = Type\objectT,
     ) {
     }
@@ -155,7 +155,6 @@ final readonly class DocBlockTypeReflector
     }
 
 
-
     private function constExprArrayNode(ConstExprArrayNode $node): Type\ArrayT
     {
         $elements = [];
@@ -222,18 +221,22 @@ final readonly class DocBlockTypeReflector
             'void' => Type\voidT,
             'never', 'never-return', 'never-returns', 'no-return' => Type\neverT,
             'self', 'static', '$this' => $this->thisType,
-            default => $this->templateArguments[$type->name] ?? TyphoonFactory::object($this->nameResolver->resolve($type->name))
+            default => $this->templateArguments[$type->name]
+                ?? TyphoonFactory::object(
+                    $this->nameResolver?->resolve($type->name)
+                    ?? $type->name
+                )
         };
     }
 
     private function intersection(IntersectionTypeNode $type): Type
     {
-       return TyphoonFactory::intersection(array_map($this->reflect(...), $type->types));
+        return TyphoonFactory::intersection(array_map($this->reflect(...), $type->types));
     }
 
     private function union(UnionTypeNode $type): Type
     {
-       return TyphoonFactory::union(array_map($this->reflect(...), $type->types));
+        return TyphoonFactory::union(array_map($this->reflect(...), $type->types));
     }
 
     private function nullable(NullableTypeNode $type): Type
@@ -252,7 +255,7 @@ final readonly class DocBlockTypeReflector
             };
             $type = $this->reflect($item->valueType);
 
-            if($name === '') {
+            if ($name === '') {
                 throw new \RuntimeException();
             }
 

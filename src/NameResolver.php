@@ -6,15 +6,16 @@ namespace Hdrtr;
 
 final class NameResolver
 {
-    private const NAME_TOKENS = [T_STRING, T_NS_SEPARATOR, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED];
-
     /**
      * @var ?array<string,string>
      */
     private ?array $names = null;
 
+    /**
+     * @param \ReflectionClass<object> $class
+     */
     public function __construct(
-        private readonly ?\ReflectionClass $class,
+        private readonly \ReflectionClass $class,
     ) {
     }
 
@@ -34,7 +35,7 @@ final class NameResolver
         }
 
         // resolve as namespaced name
-        $namespace = $this->class?->getNamespaceName() ?? '';
+        $namespace = $this->class->getNamespaceName();
         return $namespace !== '' ? $namespace . '\\' . $name : $name;
     }
 
@@ -47,18 +48,21 @@ final class NameResolver
             return $this->names;
         }
 
-        $filename = $this->class?->getFileName() ?? false;
-        $names = $filename !== false
-            ? $this->parseFile($filename)
-            : [];
-
-        $this->names = $names;
-        return $names;
+        $filename = $this->class->getFileName();
+        $names = is_string($filename) ? $this->parseFile($filename) : [];
+        return $this->names = $names;
     }
 
+    /**
+     * @return array<string, string>
+     */
     private function parseFile(string $filename): array
     {
-        $tokens = token_get_all(file_get_contents($filename));
+        $contents = file_get_contents($filename);
+        if ($contents === false) {
+            throw new \RuntimeException();
+        }
+        $tokens = token_get_all($contents);
         $tokens = array_values(
             array_filter(
                 $tokens,
@@ -171,8 +175,13 @@ final class NameResolver
      */
     private function readName(array $tokens, int &$i, int $n): string
     {
+        $nameTokens = [T_STRING, T_NS_SEPARATOR, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED];
         $name = '';
-        while ($i < $n && is_array($tokens[$i]) && in_array($tokens[$i][0], self::NAME_TOKENS, true)) {
+        while (
+            $i < $n
+            && is_array($tokens[$i])
+            && in_array($tokens[$i][0], $nameTokens, true)
+        ) {
             $name .= $tokens[$i][1];
             $i++;
         }

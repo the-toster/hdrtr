@@ -19,7 +19,7 @@ final readonly class DocBlockParser
     public Lexer $lexer;
     public PhpDocParser $parser;
 
-    public function __construct(public NameResolver $nameResolver)
+    public function __construct(public ?NameResolver $nameResolver = null)
     {
         $config = new ParserConfig(usedAttributes: []);
         $this->lexer = new Lexer($config);
@@ -44,7 +44,7 @@ final readonly class DocBlockParser
 
         return $varTag === null
             ? null
-            : (new DocBlockTypeReflector($templateArguments, nameResolver: $this->nameResolver))->reflect($varTag->type);
+            : (new DocBlockTypeReflector($templateArguments, $this->nameResolver))->reflect($varTag->type);
     }
 
     /** @return list<DocBlockTemplate> */
@@ -62,7 +62,7 @@ final readonly class DocBlockParser
 
             $defaultType = $defaultNode === null
                 ? mixedT
-                : (new DocBlockTypeReflector($templateArguments, nameResolver: $this->nameResolver))->reflect($defaultNode);
+                : (new DocBlockTypeReflector($templateArguments, $this->nameResolver))->reflect($defaultNode);
 
             $r[] = new DocBlockTemplate($template->name, $defaultType);
             $templateArguments[$template->name] = $defaultType;
@@ -81,7 +81,7 @@ final readonly class DocBlockParser
             return [];
         }
 
-        $reflector = (new DocBlockTypeReflector($templateArguments, nameResolver: $this->nameResolver));
+        $reflector = (new DocBlockTypeReflector($templateArguments, $this->nameResolver));
         $r = [];
         $tokens = new TokenIterator($this->lexer->tokenize($definition));
         foreach ($this->parser->parse($tokens)->getParamTagValues() as $param) {

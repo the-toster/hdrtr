@@ -19,7 +19,7 @@ final class DocBlockParserTest extends TestCase
 {
     public function testBasic(): void
     {
-        $parser = new DocBlockParser(new NameResolver());
+        $parser = new DocBlockParser();
 
         assertEquals(unionT(intT(2), intT(1)), $parser->parseVar('/** @var 2|1 $abc */', []));
     }
