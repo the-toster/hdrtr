@@ -338,6 +338,12 @@ final readonly class HydratingVisitor implements Visitor
             return $this->data;
         }
 
+        $reflection = new \ReflectionClass($type->class);
+
+        if ($reflection->isEnum()) {
+            return (new EnumInstantiator())->buildInstance($type, $this->data, $this);
+        }
+
         if (!is_array($this->data)) {
             return $this->failedToCast($type);
         }

@@ -11,8 +11,9 @@ use Typhoon\Type;
 final readonly class TestCustomHydrator implements CustomHydrator
 {
 
-    public function hydrate(mixed $data, Type $type, array $path, Hydrator $hydrator): mixed
+    public function hydrate(mixed $data, Type $type, array $path, Hydrator $hydrator): string
     {
+        /** @phpstan-ignore cast.string */
         return (string) $data;
     }
 
