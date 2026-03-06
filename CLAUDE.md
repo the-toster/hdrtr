@@ -9,13 +9,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 docker compose run --rm php bash
 
 # Run all tests
-./vendor/bin/phpunit
+docker compose -f docker/compose.yaml run --rm php vendor/bin/phpunit
 
 # Run a single test file
-./vendor/bin/phpunit tests/HydratorTest.php
+docker compose -f docker/compose.yaml run --rm php vendor/bin/phpunit tests/HydratorTest.php
 
 # Run a single test method
-./vendor/bin/phpunit --filter testMethodName
+docker compose -f docker/compose.yaml run --rm php vendor/bin/phpunit --filter testMethodName
 
 # Static analysis
 ./vendor/bin/phpstan
