@@ -40,6 +40,7 @@ final readonly class DocBlockTypeReflector
     public function __construct(
         private array $templateArguments = [],
         private Type $thisType = Type\objectT,
+        private NameResolver $nameResolver,
     ) {
     }
 
@@ -221,7 +222,7 @@ final readonly class DocBlockTypeReflector
             'void' => Type\voidT,
             'never', 'never-return', 'never-returns', 'no-return' => Type\neverT,
             'self', 'static', '$this' => $this->thisType,
-            default => $this->templateArguments[$type->name] ?? TyphoonFactory::object($type->name)
+            default => $this->templateArguments[$type->name] ?? TyphoonFactory::object($this->nameResolver->resolve($type->name))
         };
     }
 

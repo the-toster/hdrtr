@@ -15,8 +15,9 @@ final readonly class ObjectInstantiator
     public function buildInstance(NamedObjectT $type, array $data, HydratingVisitor $hydrator): object
     {
         $reflection = new ReflectionClass($type->class);
+        $nameResolver = new NameResolver($reflection);
         $constructorDefaults = $this->getConstructorDefaults($reflection);
-        $docBlockParser = new DocBlockParser();
+        $docBlockParser = new DocBlockParser($nameResolver);
 
         $classTemplates = $docBlockParser->parseTemplates($reflection->getDocComment());
         $templateArguments = [];
