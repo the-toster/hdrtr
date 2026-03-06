@@ -39,8 +39,8 @@ final readonly class DocBlockTypeReflector
      */
     public function __construct(
         private array $templateArguments = [],
-        private Type $thisType = Type\objectT,
         private NameResolver $nameResolver,
+        private Type $thisType = Type\objectT,
     ) {
     }
 
