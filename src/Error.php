@@ -16,8 +16,7 @@ final readonly class Error
         public Type $type,
         public mixed $data,
         public array $path
-    )
-    {
+    ) {
     }
 
     /**
@@ -33,7 +32,7 @@ final readonly class Error
      */
     public static function missedKey(Type $type, mixed $data, array $path): self
     {
-        return new self('failed to cast', $type, $data, $path);
+        return new self('missed key', $type, $data, $path);
     }
 
 
