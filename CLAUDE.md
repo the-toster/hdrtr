@@ -31,9 +31,15 @@ docker compose -f docker/compose.yaml run --rm php vendor/bin/phpunit --filter t
 - `Hydrator` — entry point, calls `$type->accept(new HydratingVisitor($data))`
 - `HydratingVisitor` — implements `Typhoon\Type\Visitor`, handles every type variant recursively. This is the core of the library.
 - `IsSimpleValueTypeOf` — a second visitor that validates raw data against a type without hydrating; used as a fast-path check
+- `IsNever` — visitor that checks whether a type resolves to `never`
 - `ObjectInstantiator` — reflects a class, parses DocBlocks for `@template` bindings, creates instances via `newInstanceWithoutConstructor()`, then sets properties via reflection
+- `NameResolver` — resolves short/qualified class names to FQCNs by parsing `use` statements from the source file
 - `DocBlockParser` + `DocBlockTypeReflector` — parse PHPStan's phpdoc-parser AST into Typhoon `Type` objects
+- `DocBlockTemplate` — value object for a `@template` binding
+- `TyphoonFactory` — creates Typhoon `Type` instances from reflection
 - `ReflectionTypeConverter` — converts PHP's native `ReflectionType` to Typhoon `Type`
+- `CustomHydrator` — interface for user-provided custom hydration logic
+- `Unimplemented` — exception for visitor methods not yet implemented
 - `Error` — returned (not thrown) on hydration failure; carries message, expected type, actual value, and path
 
 ### Key design decisions
