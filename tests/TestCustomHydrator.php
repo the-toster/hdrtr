@@ -17,7 +17,7 @@ final readonly class TestCustomHydrator implements CustomHydrator
         return (string) $data;
     }
 
-    public function supports(mixed $data, Type $type): mixed
+    public function supports(mixed $data, Type $type): bool
     {
         return $type instanceof Type\StringT
             && is_int($data);

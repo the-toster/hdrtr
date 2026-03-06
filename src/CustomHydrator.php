@@ -15,5 +15,5 @@ interface CustomHydrator
      * @return T|Error
      */
     public function hydrate(mixed $data, Type $type, array $path, Hydrator $hydrator): mixed;
-    public function supports(mixed $data, Type $type): mixed;
+    public function supports(mixed $data, Type $type): bool;
 }
