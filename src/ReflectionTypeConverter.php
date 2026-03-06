@@ -15,7 +15,9 @@ final readonly class ReflectionTypeConverter
         }
 
         return match ($ref::class) {
-            \ReflectionNamedType::class => $this->named($ref),
+            \ReflectionNamedType::class => $ref->allowsNull()
+                ? Type\nullOrT($this->named($ref))
+                : $this->named($ref),
             \ReflectionUnionType::class => $this->union($ref),
             \ReflectionIntersectionType::class => $this->intersection($ref),
             default => throw new \RuntimeException()

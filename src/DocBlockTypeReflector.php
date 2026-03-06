@@ -241,7 +241,7 @@ final readonly class DocBlockTypeReflector
 
     private function nullable(NullableTypeNode $type): Type
     {
-        return Type\unionT($this->reflect($type->type), Type\nullT);
+        return Type\nullOrT($this->reflect($type->type));
     }
 
     private function objectShape(ObjectShapeNode $type): Type

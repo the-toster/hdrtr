@@ -8,10 +8,11 @@ use Hdrtr\Error;
 use Hdrtr\Hydrator;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+
 use function PHPUnit\Framework\assertEquals;
-use function Typhoon\Type\arrayShapeT;
 use function Typhoon\Type\objectShapeT;
 use function Typhoon\Type\objectT;
+
 use const Typhoon\Type\intT;
 use const Typhoon\Type\stringT;
 
@@ -32,7 +33,10 @@ final class HydratorObjectsTest extends TestCase
         $hydrator = new Hydrator();
         $data = [];
 
-        assertEquals(new ObjectWithDefaultProperty(), $hydrator->hydrate($data, objectT(ObjectWithDefaultProperty::class)));
+        assertEquals(
+            new ObjectWithDefaultProperty(),
+            $hydrator->hydrate($data, objectT(ObjectWithDefaultProperty::class))
+        );
     }
 
     #[Test]
@@ -41,7 +45,8 @@ final class HydratorObjectsTest extends TestCase
         $hydrator = new Hydrator();
         $data = ['items' => [4, 5]];
 
-        assertEquals(new ObjectWithDefaultPromotedProperty([4, 5]), $hydrator->hydrate($data, objectT(ObjectWithDefaultPromotedProperty::class)));
+        assertEquals(new ObjectWithDefaultPromotedProperty([4, 5]),
+            $hydrator->hydrate($data, objectT(ObjectWithDefaultPromotedProperty::class)));
     }
 
     #[Test]
@@ -50,7 +55,8 @@ final class HydratorObjectsTest extends TestCase
         $hydrator = new Hydrator();
         $data = [];
 
-        assertEquals(new ObjectWithDefaultPromotedProperty([1, 2, 3]), $hydrator->hydrate($data, objectT(ObjectWithDefaultPromotedProperty::class)));
+        assertEquals(new ObjectWithDefaultPromotedProperty([1, 2, 3]),
+            $hydrator->hydrate($data, objectT(ObjectWithDefaultPromotedProperty::class)));
     }
 
     #[Test]
@@ -86,6 +92,13 @@ final class HydratorObjectsTest extends TestCase
     public function object_shape(): void
     {
         $r = (new Hydrator())->hydrate(['x' => 1], objectShapeT(['x' => intT]));
-        assertEquals((object)['x' => 1], $r);
+        assertEquals((object) ['x' => 1], $r);
+    }
+
+    #[Test]
+    public function nullable_property(): void
+    {
+        $r = (new Hydrator())->hydrate(['a' => null], objectT(ObjectWithNullableProperty::class));
+        assertEquals(new ObjectWithNullableProperty(null), $r);
     }
 }
