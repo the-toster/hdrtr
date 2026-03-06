@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hdrtr\Tests;
 
 use Hdrtr\DocBlockParser;
+use Hdrtr\NameResolver;
 use PHPUnit\Framework\TestCase;
 
 use function PHPUnit\Framework\assertEquals;
@@ -18,7 +19,7 @@ final class DocBlockParserTest extends TestCase
 {
     public function testBasic(): void
     {
-        $parser = new DocBlockParser();
+        $parser = new DocBlockParser(new NameResolver());
 
         assertEquals(unionT(intT(2), intT(1)), $parser->parseVar('/** @var 2|1 $abc */', []));
     }

@@ -6,16 +6,16 @@ namespace Hdrtr;
 
 final class NameResolver
 {
+    private const NAME_TOKENS = [T_STRING, T_NS_SEPARATOR, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED];
 
     /**
      * @var ?array<string,string>
      */
-    public ?array $names = null;
+    private ?array $names = null;
 
     public function __construct(
-        private readonly \ReflectionClass $class,
-    )
-    {
+        private readonly ?\ReflectionClass $class,
+    ) {
     }
 
     public function resolve(string $name): string
@@ -34,7 +34,7 @@ final class NameResolver
         }
 
         // resolve as namespaced name
-        $namespace = $this->class->getNamespaceName();
+        $namespace = $this->class?->getNamespaceName() ?? '';
         return $namespace !== '' ? $namespace . '\\' . $name : $name;
     }
 
@@ -47,106 +47,136 @@ final class NameResolver
             return $this->names;
         }
 
-        $names = [];
+        $filename = $this->class?->getFileName() ?? false;
+        $names = $filename !== false
+            ? $this->parseFile($filename)
+            : [];
 
-        // find $this->class file
-        $filename = $this->class->getFileName();
-        if ($filename !== false) {
-            $tokens = token_get_all(file_get_contents($filename));
-            $tokens = array_values(array_filter(
+        $this->names = $names;
+        return $names;
+    }
+
+    private function parseFile(string $filename): array
+    {
+        $tokens = token_get_all(file_get_contents($filename));
+        $tokens = array_values(
+            array_filter(
                 $tokens,
-                static fn($t) => !is_array($t) || !in_array($t[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT]),
-            ));
+                static fn ($t) => !is_array($t) || !in_array($t[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true),
+            )
+        );
 
-            $nameTokens = [T_STRING, T_NS_SEPARATOR, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED];
-            $depth = 0;
-            $i = 0;
-            $n = count($tokens);
+        $names = [];
+        $depth = 0;
+        $i = 0;
+        $n = count($tokens);
 
-            while ($i < $n) {
-                $tok = $tokens[$i];
+        while ($i < $n) {
+            $tok = $tokens[$i];
 
-                if ($tok === '{') { $depth++; $i++; continue; }
-                if ($tok === '}') { $depth--; $i++; continue; }
+            if ($tok === '{') {
+                $depth++;
+                $i++;
+                continue;
+            }
+            if ($tok === '}') {
+                $depth--;
+                $i++;
+                continue;
+            }
 
-                // find namespace node and parse 'use' nodes to find aliases at top level
-                if (!is_array($tok) || $tok[0] !== T_USE || $depth !== 0) {
-                    $i++;
-                    continue;
-                }
+            // only top-level use statements
+            if (!is_array($tok) || $tok[0] !== T_USE || $depth !== 0) {
+                $i++;
+                continue;
+            }
 
-                $i++; // skip T_USE
+            $i++; // skip T_USE
 
-                // skip 'use function'
-                if ($i < $n && is_array($tokens[$i]) && $tokens[$i][0] === T_FUNCTION) {
-                    while ($i < $n && $tokens[$i] !== ';') $i++;
-                    $i++;
-                    continue;
-                }
-
-                // skip 'use const' keyword, but parse the import
-                if ($i < $n && is_array($tokens[$i]) && $tokens[$i][0] === T_CONST) {
-                    $i++;
-                }
-
-                // read base name
-                $baseName = '';
-                while ($i < $n && is_array($tokens[$i]) && in_array($tokens[$i][0], $nameTokens)) {
-                    $baseName .= $tokens[$i][1];
+            // skip 'use function'
+            if ($i < $n && is_array($tokens[$i]) && $tokens[$i][0] === T_FUNCTION) {
+                while ($i < $n && $tokens[$i] !== ';') {
                     $i++;
                 }
+                $i++;
+                continue;
+            }
 
-                if ($i >= $n) break;
+            // skip 'const' keyword but parse the import
+            if ($i < $n && is_array($tokens[$i]) && $tokens[$i][0] === T_CONST) {
+                $i++;
+            }
 
-                if ($tokens[$i] === ';') {
-                    // use Foo\Bar;
-                    $names[$this->lastName($baseName)] = ltrim($baseName, '\\');
+            $baseName = $this->readName($tokens, $i, $n);
+            if ($i >= $n) {
+                break;
+            }
+
+            if ($tokens[$i] === ';') {
+                // use Foo\Bar;
+                $names[$this->lastName($baseName)] = ltrim($baseName, '\\');
+                $i++;
+            } elseif (is_array($tokens[$i]) && $tokens[$i][0] === T_AS) {
+                // use Foo\Bar as Baz;
+                $i++;
+                if ($i < $n && is_array($tokens[$i]) && $tokens[$i][0] === T_STRING) {
+                    $names[$tokens[$i][1]] = ltrim($baseName, '\\');
                     $i++;
-                } elseif (is_array($tokens[$i]) && $tokens[$i][0] === T_AS) {
-                    // use Foo\Bar as Baz;
+                }
+                if ($i < $n && $tokens[$i] === ';') {
                     $i++;
-                    if ($i < $n && is_array($tokens[$i]) && $tokens[$i][0] === T_STRING) {
-                        $names[$tokens[$i][1]] = ltrim($baseName, '\\');
+                }
+            } elseif ($tokens[$i] === '{') {
+                // use Foo\{Bar, Baz as Qux};
+                $prefix = rtrim(ltrim($baseName, '\\'), '\\');
+                $i++;
+                while ($i < $n && $tokens[$i] !== '}') {
+                    if ($tokens[$i] === ',') {
                         $i++;
+                        continue;
                     }
-                    if ($i < $n && $tokens[$i] === ';') $i++;
-                } elseif ($tokens[$i] === '{') {
-                    // use Foo\{Bar, Baz as Qux};
-                    $prefix = rtrim(ltrim($baseName, '\\'), '\\');
+
+                    $memberName = $this->readName($tokens, $i, $n);
+                    if ($memberName === '') {
+                        $i++;
+                        continue;
+                    }
+
+                    if ($i < $n && is_array($tokens[$i]) && $tokens[$i][0] === T_AS) {
+                        $i++;
+                        if ($i < $n && is_array($tokens[$i]) && $tokens[$i][0] === T_STRING) {
+                            $names[$tokens[$i][1]] = $prefix . '\\' . $memberName;
+                            $i++;
+                        }
+                    } else {
+                        $names[$this->lastName($memberName)] = $prefix . '\\' . $memberName;
+                    }
+                }
+                if ($i < $n) {
                     $i++;
-                    while ($i < $n && $tokens[$i] !== '}') {
-                        if ($tokens[$i] === ',') { $i++; continue; }
-
-                        $memberName = '';
-                        while ($i < $n && is_array($tokens[$i]) && in_array($tokens[$i][0], $nameTokens)) {
-                            $memberName .= $tokens[$i][1];
-                            $i++;
-                        }
-
-                        if ($memberName === '') { $i++; continue; }
-
-                        if ($i < $n && is_array($tokens[$i]) && $tokens[$i][0] === T_AS) {
-                            $i++;
-                            if ($i < $n && is_array($tokens[$i]) && $tokens[$i][0] === T_STRING) {
-                                $names[$tokens[$i][1]] = $prefix . '\\' . $memberName;
-                                $i++;
-                            }
-                        } else {
-                            // build names map localName => FQN
-                            $names[$this->lastName($memberName)] = $prefix . '\\' . $memberName;
-                        }
-                    }
-                    if ($i < $n) $i++; // skip }
-                    if ($i < $n && $tokens[$i] === ';') $i++;
-                } else {
+                } // }
+                if ($i < $n && $tokens[$i] === ';') {
                     $i++;
                 }
+            } else {
+                $i++;
             }
         }
 
-        $this->names = $names;
-
         return $names;
+    }
+
+    /**
+     * @param list<array{int,string,int}|string> $tokens
+     */
+    private function readName(array $tokens, int &$i, int $n): string
+    {
+        $name = '';
+        while ($i < $n && is_array($tokens[$i]) && in_array($tokens[$i][0], self::NAME_TOKENS, true)) {
+            $name .= $tokens[$i][1];
+            $i++;
+        }
+        return $name;
     }
 
     private function lastName(string $name): string
