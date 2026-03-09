@@ -9,7 +9,8 @@ use Typhoon\Type;
 final readonly class Hydrator
 {
     /**
-     * @param list<CustomHydrator> $customHydrators
+     * @template T
+     * @param list<CustomHydrator<T>> $customHydrators
      */
     public function __construct(
         private array $customHydrators = [],
