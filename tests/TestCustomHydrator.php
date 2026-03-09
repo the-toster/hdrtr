@@ -8,9 +8,6 @@ use Hdrtr\CustomHydrator;
 use Hdrtr\Hydrator;
 use Typhoon\Type;
 
-/**
- * @implements CustomHydrator<string>
- */
 final readonly class TestCustomHydrator implements CustomHydrator
 {
 
